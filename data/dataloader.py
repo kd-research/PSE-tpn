@@ -3,6 +3,7 @@ import os, random, numpy as np, copy
 
 from .preprocessor import preprocess
 from .ethucy_split import get_ethucy_split
+from .steersim import get_steersim_split, steersimProcess
 from utils.utils import print_log
 
 
@@ -21,14 +22,19 @@ class data_generator(object):
             data_root = parser.data_root_nuscenes_pred           
             seq_train, seq_val, seq_test = get_nuscenes_pred_split(data_root)
             self.init_frame = 0
+            process_func = preprocess
         elif parser.dataset in {'eth', 'hotel', 'univ', 'zara1', 'zara2'}:
             data_root = parser.data_root_ethucy            
             seq_train, seq_val, seq_test = get_ethucy_split(parser.dataset)
             self.init_frame = 0
+            process_func = preprocess
+        elif parser.dataset == "steersim":
+            data_root = parser.data_root_steersim
+            seq_train, seq_val, seq_test = get_steersim_split(parser.dataset)
+            process_func = steersimProcess
         else:
             raise ValueError('Unknown dataset!')
 
-        process_func = preprocess
         self.data_root = data_root
 
         print_log("\n-------------------------- loading %s data --------------------------" % split, log=log)
