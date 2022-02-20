@@ -87,6 +87,7 @@ class steersimProcess(preprocess):
 
             gt_matrix = []
             for agentId, agent_matrix in enumerate(agent_array):
+                agent_matrix = agent_matrix[::30, :]        # sample in 1 fps
                 frame_length = agent_matrix.shape[0]
                 gt_extend = np.full([frame_length, 17], -1, dtype=np.float32)
                 gt_extend[:, 0] = np.arange(frame_length)   # frame_num

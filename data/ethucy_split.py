@@ -30,3 +30,5 @@ def get_ethucy_split(dataset):
           train.append(f'{seq}_train')
           val.append(f'{seq}_val')
      return train, val, test
+
+

@@ -6,7 +6,13 @@ from .map import GeometricMap
 
 class preprocess(object):
     
-    def __init__(self, data_root, seq_name, parser, log, split='train', phase='training'):
+    def __init__(self,
+                 data_root,
+                 seq_name,
+                 parser,
+                 log,
+                 split='train',
+                 phase='training'):
         self.parser = parser
         self.dataset = parser.dataset
         self.data_root = data_root
