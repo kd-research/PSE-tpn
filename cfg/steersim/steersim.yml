@@ -23,15 +23,15 @@ forecast_dim                 : 2
 
 model_id: dlow
 pred_cfg: steersim_pre
-pred_epoch: 30
-qnet_mlp: [512, 256]
+pred_epoch: 100
+qnet_mlp: [256, 256]
 share_eps: true
 train_w_mean: true
 
 # ------------------- VAE-------------------------
 
 nz                           : 32
-sample_k                     : 20
+sample_k                     : 8
 
 # ------------------- Training Parameters -------------------------
 

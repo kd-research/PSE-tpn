@@ -7,9 +7,9 @@ logger = logging.Logger(__name__)
 
 
 def get_steersim_split(_):
-    return [f"steersim{i:02}" for i in range(1, 6)], \
-           [f"steersim{i:02}" for i in range(6, 10)], \
-           ["steersim10"]
+    return [f"steersim{i:02}" for i in range( 1, 31)], \
+           [f"steersim{i:02}" for i in range(31, 41)], \
+           [f"steersim{i:02}" for i in range(50, 51)], \
 
 
 class steersimProcess(preprocess):
