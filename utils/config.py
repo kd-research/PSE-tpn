@@ -13,6 +13,8 @@ class Config:
         self.id = cfg_id
         cfg_path = 'cfg/**/%s.yml' % cfg_id
         files = glob.glob(cfg_path, recursive=True)
+        if len(files) != 1:
+            print(files)
         assert(len(files) == 1)
         self.yml_dict = EasyDict(yaml.safe_load(open(files[0], 'r')))
 

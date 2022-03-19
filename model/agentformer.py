@@ -1,3 +1,6 @@
+import copy
+import os
+
 import torch
 import numpy as np
 from torch import nn
@@ -389,6 +392,19 @@ class FutureDecoder(nn.Module):
         if need_weights:
             data['attn_weights'] = attn_weights
 
+    def decode_traj_dist(self, data, mode, context, pre_motion, pre_vel, pre_motion_scene_norm, z, sample_num):
+        DIST_SEQ_OUT = f"{mode}_seq_out"
+        DIST_DEC_MOTION = f"{mode}_dec_motion"
+
+        data_dup = copy.copy(data)
+        z_dist = z + torch.randn_like(z)
+        ce = data_dup["context_enc"]
+        data_dup["context_enc"] = ce + torch.randn_like(ce)
+        self.decode_traj_ar(data_dup, mode, context, pre_motion, pre_vel, pre_motion_scene_norm, z_dist, sample_num)
+
+        data[DIST_SEQ_OUT] = data_dup[DIST_SEQ_OUT]
+        data[DIST_DEC_MOTION] = data_dup[DIST_DEC_MOTION]
+
     def decode_traj_batch(self, data, mode, context, pre_motion, pre_vel, pre_motion_scene_norm, z, sample_num):
         raise NotImplementedError
 
@@ -423,6 +439,8 @@ class FutureDecoder(nn.Module):
 
         if autoregress:
             self.decode_traj_ar(data, mode, context, pre_motion, pre_vel, pre_motion_scene_norm, z, sample_num, need_weights=need_weights)
+            if mode == 'train':
+                self.decode_traj_dist(data, f"{mode}_dist", context, pre_motion, pre_vel, pre_motion_scene_norm, z, sample_num)
         else:
             self.decode_traj_batch(data, mode, context, pre_motion, pre_vel, pre_motion_scene_norm, z, sample_num)
         

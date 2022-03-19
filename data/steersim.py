@@ -7,9 +7,9 @@ logger = logging.Logger(__name__)
 
 
 def get_steersim_split(_):
-    return [f"steersim{i:02}" for i in range( 1, 31)], \
-           [f"steersim{i:02}" for i in range(31, 41)], \
-           [f"steersim{i:02}" for i in range(50, 51)], \
+    return [f"steersim{i:02}" for i in range(1, 201)], \
+           [f"steersim{i:02}" for i in range(201, 221)], \
+           [f"steersim{i:02}" for i in range(221, 226)]
 
 
 class steersimProcess(preprocess):
@@ -42,7 +42,7 @@ class steersimProcess(preprocess):
         else:
             assert False, 'error'
 
-        self.gt = self.read_trajectory_binary(label_path)
+        self.gt, self.parm = self.read_trajectory_binary(label_path)
         frames = self.gt[:, 0].astype(np.float32).astype(np.int)
         fr_start, fr_end = frames.min(), frames.max()
         self.init_frame = fr_start
@@ -76,7 +76,7 @@ class steersimProcess(preprocess):
 
             parameter_size = np.fromfile(file, np.int32, 1)[0]
             logger.debug("Reading parameter info section, size %d", parameter_size)
-            _ = np.fromfile(file, dtype=np.float32, count=parameter_size)
+            parameters = np.fromfile(file, dtype=np.float32, count=parameter_size)
 
             agent_array = []
             while file.tell() < eof:
@@ -87,16 +87,21 @@ class steersimProcess(preprocess):
 
             gt_matrix = []
             for agentId, agent_matrix in enumerate(agent_array):
-                agent_matrix = agent_matrix[::30, :]        # sample in 1 fps
+                agent_matrix = agent_matrix[:1200:30, :]  # sample in 1 fps
                 frame_length = agent_matrix.shape[0]
                 gt_extend = np.full([frame_length, 17], -1, dtype=np.float32)
-                gt_extend[:, 0] = np.arange(frame_length)   # frame_num
-                gt_extend[:, 1] = agentId                   # agent_id
-                gt_extend[:, 2] = 1                         # pedestrian
-                gt_extend[:, [13, 15]] = agent_matrix       # position x, z
+                gt_extend[:, 0] = np.arange(frame_length)  # frame_num
+                gt_extend[:, 1] = agentId  # agent_id
+                gt_extend[:, 2] = 1  # pedestrian
+                gt_extend[:, [13, 15]] = agent_matrix  # position x, z
                 gt_matrix.append(gt_extend)
 
         all_matrix = np.concatenate(gt_matrix)
-        return all_matrix[all_matrix[:, 0].argsort(kind="stable")]
+        return all_matrix[all_matrix[:, 0].argsort(kind="stable")], parameters
 
     env1_rect = {"xmin": -70, "xmax": 70, "ymin": -100, "ymax": 100}
+
+    def __call__(self, *args, **kwargs):
+        data = super.__call__(*args, **kwargs)
+        data["env parameter"] = self.parm
+        return data
