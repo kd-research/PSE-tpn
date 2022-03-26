@@ -102,6 +102,6 @@ class steersimProcess(preprocess):
     env1_rect = {"xmin": -70, "xmax": 70, "ymin": -100, "ymax": 100}
 
     def __call__(self, *args, **kwargs):
-        data = super.__call__(*args, **kwargs)
-        data["env parameter"] = self.parm
+        data = super(steersimProcess, self).__call__(*args, **kwargs)
+        data["env_parameter"] = self.parm
         return data

@@ -64,8 +64,12 @@ loss_cfg:
   sample:
     weight: 1.0
     k: 20
+  zpr:
+    weight: 1.0
+  ydist:
+    weight: 1.0
 
-num_epochs                   : 100
+num_epochs                   : 200
 lr_fix_epochs                : 10
 lr_scheduler: 'step'
 decay_step: 10

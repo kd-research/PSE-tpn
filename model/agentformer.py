@@ -599,6 +599,8 @@ class AgentFormer(nn.Module):
         else:
             mask = torch.zeros([cur_motion.shape[0], cur_motion.shape[0]]).to(device)
         self.data['agent_mask'] = mask
+        if "env_parameter" in in_data:
+            self.data['env_parameter'] = torch.tensor(in_data['env_parameter']).to(device)
 
     def step_annealer(self):
         for anl in self.param_annealers:

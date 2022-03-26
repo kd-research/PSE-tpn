@@ -1,6 +1,6 @@
 # ------------------- General Options -------------------------
 
-description                  : AgentFormer (DLow)
+description                  : AgentFormer (Env)
 results_root_dir             : results
 seed                         : 1
 dataset                      : steersim
@@ -21,32 +21,26 @@ forecast_dim                 : 2
 
 # ------------------- Model -------------------------
 
-model_id: dlow
-pred_cfg: steersim_pre
+model_id: envpred
+pred_cfg: steersim_pre_no_iso
 pred_epoch: 200
 qnet_mlp: [256, 256]
-share_eps: true
 train_w_mean: true
 
 # ------------------- VAE-------------------------
 
-nz                           : 32
-sample_k                     : 8
+nz                           : 43
+sample_k                     : 1
 
 # ------------------- Training Parameters -------------------------
 
 lr                           : 1.e-4
 loss_cfg:
-  kld:
-    weight: 0.1
-    min_clip: 10
-  diverse:
-    weight: 20
-    d_scale: 10
-  recon:
-    weight: 5.0
+  pred:
+    weight: 1.0
+    normalize: false
 
-num_epochs                   : 10
+num_epochs                   : 50
 lr_fix_epochs                : 10
 lr_scheduler: 'step'
 decay_step: 5
