@@ -1,4 +1,5 @@
 import torch
+import os
 from torch import nn
 from torch.nn import functional as F
 from utils.torch import *
@@ -112,6 +113,11 @@ class DLow(nn.Module):
         z = b if mean else A*eps + b
         logvar = (A ** 2 + 1e-8).log()
         self.data['q_z_dist_dlow'] = Normal(mu=b, logvar=logvar)
+
+        if "sample_latent" in os.environ.get("LearningFlag", "").split(";"):
+            #print(self.data.keys())
+            self.data["context_enc"] = torch.randn_like(self.data["context_enc"])
+            z = torch.randn_like(z)
 
         pred_model.future_decoder(self.data, mode='infer', sample_num=self.nk, autoregress=True, z=z, need_weights=need_weights)
         return self.data
