@@ -1,0 +1,18 @@
+#!/bin/bash
+
+##SBATCH --chdir=
+#SBATCH --job-name=batch-kaidong
+#SBATCH --output=job.%j.out
+#SBATCH --ntasks=1
+#SBATCH --nodes=1
+#SBATCH --partition=gpu
+#SBATCH --gres=gpu:1
+#SBATCH --constraint="rtx2080|gtx1080ti"
+ 
+export SINGULARITY_LOCALCACHEDIR=`pwd`/tmp
+export SINGULARITY_TMPDIR=`pwd`/tmp
+mkdir -p $SINGULARITY_TMPDIR
+
+nvidia-smi
+singularity exec --nv $HOME/sifs/torch-220415.sif /local/conda/envs/torch/bin/python3 train.py
+nvidia-smi

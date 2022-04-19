@@ -13,10 +13,10 @@ from model.model_lib import model_dict
 from utils.utils import prepare_seed, print_log, mkdir_if_missing
 
 
-def get_model_prediction(data, sample_k):
+def get_model_prediction(data, sample_k, random_latent):
     model.set_data(data)
-    recon_motion_3D, _ = model.inference(mode='recon', sample_num=sample_k)
-    sample_motion_3D, data = model.inference(mode='infer', sample_num=sample_k, need_weights=False)
+    recon_motion_3D, _ = model.inference(mode='recon', sample_num=sample_k, random_latent=random_latent)
+    sample_motion_3D, data = model.inference(mode='infer', sample_num=sample_k, need_weights=False, random_latent=random_latent)
     sample_motion_3D = sample_motion_3D.transpose(0, 1).contiguous()
     return recon_motion_3D, sample_motion_3D
 
@@ -67,8 +67,11 @@ def save_prediction(pred, data, suffix, save_dir):
     return 1
 
 
-def test_model(generator, save_dir, cfg):
+def test_model(generator, save_dir, cfg, random_latent):
+    def RMSELoss(yhat, y):
+        return torch.sum((yhat-y)**2)
     total_num_pred = 0
+    losses = []
     while not generator.is_epoch_end():
         data = generator()
         if data is None:
@@ -80,7 +83,7 @@ def test_model(generator, save_dir, cfg):
 
         gt_motion_3D = torch.tensor(data['env_parameter'])
         with torch.no_grad():
-            recon_motion_3D, sample_motion_3D = get_model_prediction(data, cfg.sample_k)
+            recon_motion_3D, sample_motion_3D = get_model_prediction(data, cfg.sample_k, random_latent)
 
         """save samples"""
         recon_dir = os.path.join(save_dir, 'recon');
@@ -93,11 +96,14 @@ def test_model(generator, save_dir, cfg):
             save_prediction(sample_motion_3D[i], data, f'/sample_{i:03d}', sample_dir)
         save_prediction(recon_motion_3D, data, '', recon_dir)  # save recon
         num_pred = save_prediction(gt_motion_3D, data, '', gt_dir)  # save gt
-        steersim_call_parallel(recon_motion_3D.detach().cpu().numpy())
+        losses.append(float(RMSELoss(gt_motion_3D, recon_motion_3D)))
+        if random_latent:
+            steersim_call_parallel(recon_motion_3D.detach().cpu().numpy())
         total_num_pred += num_pred
 
     [p.join() for p in PROCESS_POOL]
     PROCESS_POOL.clear()
+    print("Average loss: ", sum(losses) / len(losses))
     print_log(f'\n\n total_num_pred: {total_num_pred}', log)
 
 
@@ -112,6 +118,8 @@ if __name__ == '__main__':
     parser.add_argument('--gpu', type=int, default=0)
     parser.add_argument('--cached', action='store_true', default=False)
     parser.add_argument('--cleanup', action='store_true', default=False)
+    parser.add_argument('--random_latent', action='store_true', default=False)
+
     args = parser.parse_args()
 
     """ setup """
@@ -151,7 +159,7 @@ if __name__ == '__main__':
             mkdir_if_missing(save_dir)
             eval_dir = f'{save_dir}/samples'
             if not args.cached:
-                test_model(generator, save_dir, cfg)
+                test_model(generator, save_dir, cfg, args.random_latent)
 
             log_file = os.path.join(cfg.log_dir, 'log_eval.txt')
 

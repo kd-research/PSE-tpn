@@ -63,12 +63,14 @@ class EnvPred(nn.Module):
         self.pred_model[0].set_data(data)
         self.data = self.pred_model[0].data
 
-    def main(self, mean=False, need_weights=False):
+    def main(self, mean=False, random_latent=False, need_weights=False):
         pred_model = self.pred_model[0]
         if hasattr(pred_model, 'use_map') and pred_model.use_map:
             self.data['map_enc'] = pred_model.map_encoder(self.data['agent_maps'])
         pred_model.context_encoder(self.data)
         target_latent = self.data['context_enc']
+        if random_latent:
+            target_latent = torch.randn_like(target_latent)
         enc_shape0 = target_latent.shape[0] // 8
         latent_vec_over_agt = target_latent.view(8, -1, 256).permute(1, 0, 2).reshape(-1, 8*256)
         #latent_vec = torch.max(latent_vec_over_agt, dim=0, keepdim=True).values
@@ -85,8 +87,8 @@ class EnvPred(nn.Module):
     def forward(self):
         return self.main(mean=self.train_w_mean)
 
-    def inference(self, mode, sample_num, need_weights=False):
-        self.main(mean=True, need_weights=need_weights)
+    def inference(self, mode, sample_num, random_latent=False, need_weights=False):
+        self.main(mean=True, random_latent=random_latent, need_weights=need_weights)
         res = self.data['env_pred']
         return res, self.data
 

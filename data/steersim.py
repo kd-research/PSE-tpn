@@ -10,9 +10,9 @@ logger = logging.Logger(__name__)
 
 
 def get_steersim_split(_):
-    split = [f"steersim{i:02}" for i in range(1, 201)], \
+    split = [f"steersim{i:02}" for i in range(1, 50)], \
            [f"steersim{i:02}" for i in range(201, 211)], \
-           [f"steersim{i:02}" for i in range(221, 226)]
+           [f"steersim{i:02}" for i in range(221, 231)]
 
     trainGlob = glob.glob(os.getenv("SteersimRecordPath")+"/*.bin")
     train_seq_name = [os.path.basename(x)[:-4] for x in trainGlob]
