@@ -20,11 +20,12 @@ torch.backends.cudnn.benchmark = False
 
 
 def logging(cfg, epoch, total_epoch, iter, total_iter, ep, seq, frame, losses_str, log):
-	print_log('{} | Epo: {:02d}/{:02d}, '
-		'It: {:04d}/{:04d}, '
-		'EP: {:s}, ETA: {:s}, seq {:s}, frame {:05d}, {}'
-        .format(cfg, epoch, total_epoch, iter, total_iter, \
-		convert_secs2time(ep), convert_secs2time(ep / iter * (total_iter * (total_epoch - epoch) - iter)), seq, frame, losses_str), log)
+    print_log('{} | Epo: {:02d}/{:02d}, '
+              'It: {:04d}/{:04d}, '
+              'EP: {:s}, ETA: {:s}, seq {:s}, frame {:05d}, {}'
+              .format(cfg, epoch, total_epoch, iter, total_iter, \
+                      convert_secs2time(ep), convert_secs2time(ep / iter * (total_iter * (total_epoch - epoch) - iter)),
+                      seq, frame, losses_str), log)
 
 
 def train(epoch):
@@ -53,7 +54,8 @@ def train(epoch):
         if generator.index - last_generator_index > cfg.print_freq:
             ep = time.time() - since_train
             losses_str = ' '.join([f'{x}: {y.avg:.3f} ({y.val:.3f})' for x, y in train_loss_meter.items()])
-            logging(args.cfg, epoch, cfg.num_epochs, generator.index, generator.num_total_samples, ep, seq, frame, losses_str, log)
+            logging(args.cfg, epoch, cfg.num_epochs, generator.index, generator.num_total_samples, ep, seq, frame,
+                    losses_str, log)
             for name, meter in train_loss_meter.items():
                 tb_logger.add_scalar('model_' + name, meter.avg, tb_ind)
             tb_ind += 1
@@ -63,7 +65,10 @@ def train(epoch):
     model.step_annealer()
 
 
+import dotenv
+
 if __name__ == '__main__':
+    dotenv.load_dotenv()
     parser = argparse.ArgumentParser()
     parser.add_argument('--cfg', default=None)
     parser.add_argument('--start_epoch', type=int, default=0)
@@ -77,7 +82,7 @@ if __name__ == '__main__':
     torch.set_default_dtype(torch.float32)
     device = torch.device('cuda', index=args.gpu) if torch.cuda.is_available() else torch.device('cpu')
     if torch.cuda.is_available(): torch.cuda.set_device(args.gpu)
-    
+
     time_str = get_timestring()
     log = open(os.path.join(cfg.log_dir, 'log.txt'), 'a+')
     print_log("time str: {}".format(time_str), log)
@@ -102,10 +107,11 @@ if __name__ == '__main__':
     else:
         raise ValueError('unknown scheduler type!')
 
+    model.set_device(device)
     if args.start_epoch > 0:
         cp_path = cfg.model_path % args.start_epoch
         print_log(f'loading model from checkpoint: {cp_path}', log)
-        model_cp = torch.load(cp_path, map_location='cpu')
+        model_cp = torch.load(cp_path, map_location=device)
         model.load_state_dict(model_cp['model_dict'])
         if 'opt_dict' in model_cp:
             optimizer.load_state_dict(model_cp['opt_dict'])
@@ -113,13 +119,12 @@ if __name__ == '__main__':
             scheduler.load_state_dict(model_cp['scheduler_dict'])
 
     """ start training """
-    model.set_device(device)
     model.train()
     for i in range(args.start_epoch, cfg.num_epochs):
         train(i)
         """ save model """
         if cfg.model_save_freq > 0 and (i + 1) % cfg.model_save_freq == 0:
             cp_path = cfg.model_path % (i + 1)
-            model_cp = {'model_dict': model.state_dict(), 'opt_dict': optimizer.state_dict(), 'scheduler_dict': scheduler.state_dict(), 'epoch': i + 1}
+            model_cp = {'model_dict': model.state_dict(), 'opt_dict': optimizer.state_dict(),
+                        'scheduler_dict': scheduler.state_dict(), 'epoch': i + 1}
             torch.save(model_cp, cp_path)
-

@@ -1,4 +1,7 @@
 import logging
+import os.path
+from pathlib import Path
+import glob
 import numpy as np
 
 from .preprocessor import preprocess
@@ -7,9 +10,17 @@ logger = logging.Logger(__name__)
 
 
 def get_steersim_split(_):
-    return [f"steersim{i:02}" for i in range(1, 201)], \
-           [f"steersim{i:02}" for i in range(201, 221)], \
+    split = [f"steersim{i:02}" for i in range(1, 201)], \
+           [f"steersim{i:02}" for i in range(201, 211)], \
            [f"steersim{i:02}" for i in range(221, 226)]
+
+    trainGlob = glob.glob(os.getenv("SteersimRecordPath")+"/*.bin")
+    train_seq_name = [os.path.basename(x)[:-4] for x in trainGlob]
+    cvGlob = glob.glob(os.getenv("SteersimRecordPath")+"/test/*.bin")
+    cv_seq_name = [os.path.basename(x)[:-4] for x in cvGlob]
+    split[0].extend(train_seq_name)
+    split[1].extend(cv_seq_name)
+    return split
 
 
 class steersimProcess(preprocess):
@@ -39,6 +50,8 @@ class steersimProcess(preprocess):
 
         if parser.dataset == 'steersim':
             label_path = f'{data_root}/{seq_name}.bin'
+            if not os.path.exists(label_path):
+                label_path = f'{os.environ["SteersimRecordPath"]}/{seq_name}.bin'
         else:
             assert False, 'error'
 
@@ -105,3 +118,4 @@ class steersimProcess(preprocess):
         data = super(steersimProcess, self).__call__(*args, **kwargs)
         data["env_parameter"] = self.parm
         return data
+
