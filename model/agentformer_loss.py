@@ -42,7 +42,7 @@ def compute_sample_loss(data, cfg):
 def compute_z_prior(data, cfg) -> torch.Tensor:
     # data context_enc
     latent_size = data['context_enc'].shape[1]
-    z = data['context_enc']
+    z = data['context_enc'].mean(0, keepdim=True)
     loc = torch.zeros((latent_size,)).cuda()
     var = torch.ones((latent_size,)).cuda()
 

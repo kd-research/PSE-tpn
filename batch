@@ -12,7 +12,20 @@
 export SINGULARITY_LOCALCACHEDIR=`pwd`/tmp
 export SINGULARITY_TMPDIR=`pwd`/tmp
 mkdir -p $SINGULARITY_TMPDIR
+set -xe
+nvidia-smi
+module load singularity
+
+jobtype='active'
+if [[ $jobtype == 'active' ]]; then
+singularity exec --nv $HOME/sifs/torch-220415.sif /local/conda/envs/torch/bin/python3 train.py
+fi
+
+if [[ $jobtype == 'batch' ]]; then
+#singularity exec --nv $HOME/sifs/torch-220415.sif /local/conda/envs/torch/bin/python3 steersimrandgen.py
+singularity exec --nv $HOME/sifs/torch-220415.sif /local/conda/envs/torch/bin/python3 model_train.py --cfg steersim_pre --gpu 0
+singularity exec --nv $HOME/sifs/torch-220415.sif /local/conda/envs/torch/bin/python3 model_train.py --cfg steersim_env --gpu 0
+fi
 
 nvidia-smi
-singularity exec --nv $HOME/sifs/torch-220415.sif /local/conda/envs/torch/bin/python3 train.py
-nvidia-smi
+echo 'Finished on ' `date`

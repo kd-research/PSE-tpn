@@ -4,6 +4,8 @@ import shutil
 import subprocess
 import multiprocessing
 import sys
+import numpy as np
+import multiprocessing
 
 sys.path.append(os.getcwd())
 from data.dataloader import data_generator
@@ -20,8 +22,6 @@ def get_model_prediction(data, sample_k, random_latent):
     sample_motion_3D = sample_motion_3D.transpose(0, 1).contiguous()
     return recon_motion_3D, sample_motion_3D
 
-
-PROCESS_POOL = []
 
 
 def steersim_call(query, env):
@@ -49,9 +49,7 @@ def steersim_call_parallel(query, generate_for_testcases=False):
     os.makedirs(env[SteersimRecordPath], exist_ok=True)
     queries = np.clip(query, 0, 1)
     query_string = " ".join([str(x) for x in queries.ravel()])
-    p = multiprocessing.Process(target=steersim_call, args=(query_string, env))
-    p.start()
-    PROCESS_POOL.append(p)
+    PROCESS_POOL.apply_async(steersim_call, args=(query_string, env))
 
 
 def save_prediction(pred, data, suffix, save_dir):
@@ -68,15 +66,17 @@ def save_prediction(pred, data, suffix, save_dir):
 
 
 def test_model(generator, save_dir, cfg, random_latent):
-    def RMSELoss(yhat, y):
-        y = y.detach().cpu().numpy()
-        return torch.sum((yhat-y)**2)
     total_num_pred = 0
     losses = []
-    while not generator.is_epoch_end():
-        data = generator()
-        if data is None:
-            continue
+
+    def RMSELoss(yhat, y):
+        yhat = yhat.cpu().numpy()
+        y = y.cpu().numpy()
+        return np.sum((yhat-y)**2)
+
+    def test_once(data):
+        nonlocal total_num_pred
+        nonlocal losses
         seq_name, frame = data['seq'], data['frame']
         frame = int(frame)
         sys.stdout.write('testing seq: %s, frame: %06d                \r' % (seq_name, frame))
@@ -102,8 +102,19 @@ def test_model(generator, save_dir, cfg, random_latent):
             steersim_call_parallel(recon_motion_3D.detach().cpu().numpy())
         total_num_pred += num_pred
 
-    [p.join() for p in PROCESS_POOL]
-    PROCESS_POOL.clear()
+    while not generator.is_epoch_end():
+        data = generator()
+        if data is None:
+            continue
+        if random_latent:
+            for i in range(200):
+                test_once(data)
+            break
+        else:
+            test_once(data)
+
+    PROCESS_POOL.close()
+    PROCESS_POOL.join()
     print("Average loss: ", sum(losses) / len(losses))
     print_log(f'\n\n total_num_pred: {total_num_pred}', log)
 
@@ -111,6 +122,7 @@ def test_model(generator, save_dir, cfg, random_latent):
 import dotenv
 
 if __name__ == '__main__':
+    PROCESS_POOL = multiprocessing.Pool() #use all available cores, otherwise specify the number you want as an argument
     dotenv.load_dotenv()
     parser = argparse.ArgumentParser()
     parser.add_argument('--cfg', default=None)

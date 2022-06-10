@@ -52,8 +52,7 @@ class EnvPred(nn.Module):
 
         # Dlow's Q net
         self.qnet_mlp = cfg.get('qnet_mlp', [512, 256])
-        self.q_mlp = MLP(self.pred_model_dim * 8, self.qnet_mlp, 'relu')
-        self.q_mlp2 = MLP(self.q_mlp.out_dim * 2, [256], 'relu')
+        self.q_mlp = MLP(self.pred_model_dim, [256], 'relu')
         self.q_b = nn.Linear(self.q_mlp.out_dim * 2, nz)
 
     def set_device(self, device):
@@ -73,13 +72,8 @@ class EnvPred(nn.Module):
         target_latent = self.data['context_enc']
         if random_latent:
             target_latent = torch.randn_like(target_latent)
-        enc_shape0 = target_latent.shape[0] // 8
-        latent_vec_over_agt = target_latent.view(8, -1, 256).permute(1, 0, 2).reshape(-1, 8*256)
-        #latent_vec = torch.max(latent_vec_over_agt, dim=0, keepdim=True).values
-        qnet_h = self.q_mlp(latent_vec_over_agt)
-        qnet_max = torch.max(qnet_h, dim=0, keepdim=True)[0]
-        qnet_mean = torch.mean(qnet_h, dim=0, keepdim=True)
-        qnet_h = torch.cat([qnet_mean, qnet_max], dim=1)
+        latent_vec = target_latent.mean(0, keepdim=True)
+        qnet_h = self.q_mlp(latent_vec)
         b = self.q_b(qnet_h).view(-1, self.nz)
 
         self.data['env_pred'] = b

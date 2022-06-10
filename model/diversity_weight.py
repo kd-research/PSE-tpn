@@ -12,7 +12,7 @@ def diversity_group(current, samples):
     current = current.flatten()
     distance = np.power(current - samples, 2).mean(1)
     group = np.argmin(distance)
-    print(group, ends="\t")
+    print(group, end="\t")
     return group
 
 
