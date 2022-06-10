@@ -14,12 +14,13 @@ def get_steersim_split(_):
            [f"steersim{i:02}" for i in range(201, 211)], \
            [f"steersim{i:02}" for i in range(221, 231)]
 
-    trainGlob = glob.glob(os.getenv("SteersimRecordPath")+"/*.bin")
-    train_seq_name = [os.path.basename(x)[:-4] for x in trainGlob]
-    cvGlob = glob.glob(os.getenv("SteersimRecordPath")+"/test/*.bin")
-    cv_seq_name = [os.path.basename(x)[:-4] for x in cvGlob]
-    split[0].extend(train_seq_name)
-    split[1].extend(cv_seq_name)
+    if os.getenv("SteersimRecordPath"):
+        trainGlob = glob.glob(os.getenv("SteersimRecordPath")+"/*.bin")
+        train_seq_name = [os.path.basename(x)[:-4] for x in trainGlob]
+        cvGlob = glob.glob(os.getenv("SteersimRecordPath")+"/test/*.bin")
+        cv_seq_name = [os.path.basename(x)[:-4] for x in cvGlob]
+        split[0].extend(train_seq_name)
+        split[1].extend(cv_seq_name)
     return split
 
 

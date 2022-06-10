@@ -69,6 +69,7 @@ def save_prediction(pred, data, suffix, save_dir):
 
 def test_model(generator, save_dir, cfg, random_latent):
     def RMSELoss(yhat, y):
+        y = y.detach().cpu().numpy()
         return torch.sum((yhat-y)**2)
     total_num_pred = 0
     losses = []

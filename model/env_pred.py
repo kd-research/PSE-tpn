@@ -7,6 +7,7 @@ from utils.config import Config
 from .common.mlp import MLP
 from .common.dist import *
 from . import model_lib
+from . import diversity_weight
 
 
 def pred_loss(data, cfg):
@@ -17,7 +18,8 @@ def pred_loss(data, cfg):
         loss_unweighted = loss_unweighted.mean()
     else:
         loss_unweighted = loss_unweighted.sum()
-    loss = loss_unweighted * cfg['weight']
+    #loss = loss_unweighted * cfg['weight']
+    loss = loss_unweighted * cfg['weight'] * diversity_weight.diversity_weight(data['context_enc'].view(-1, 8, 256).mean(0))
     return loss, loss_unweighted
 
 

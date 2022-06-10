@@ -40,15 +40,6 @@ def compute_sample_loss(data, cfg):
 
 # noinspection PyTypeChecker
 def compute_z_prior(data, cfg) -> torch.Tensor:
-    # data q_z_samp
-    latent_size = data['q_z_samp'].shape[1]
-    z = data['q_z_samp']
-    loc = torch.zeros((latent_size,)).cuda()
-    var = torch.ones((latent_size,)).cuda()
-
-    elementary_loss = -0.5 * torch.log(2 * numpy.pi * var) - torch.pow(z - loc, 2) / (2 * var)
-    loss_unweighted = torch.clip(elementary_loss.mean((-1,)), -3, 0)
-
     # data context_enc
     latent_size = data['context_enc'].shape[1]
     z = data['context_enc']
@@ -59,9 +50,9 @@ def compute_z_prior(data, cfg) -> torch.Tensor:
     loss_unweighted1 = torch.clip(elementary_loss.mean((-1,)), -3, 0)
 
     if cfg.get('normalize', True):
-        loss_unweighted = (loss_unweighted.mean() + loss_unweighted1.mean())/2
+        loss_unweighted = loss_unweighted1.mean()/2
     else:
-        loss_unweighted = loss_unweighted.sum() + loss_unweighted1.sum()
+        loss_unweighted = loss_unweighted1.sum()
     loss = loss_unweighted * cfg['weight']
     return loss, loss_unweighted
 
