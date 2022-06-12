@@ -53,7 +53,7 @@ class EnvPred(nn.Module):
         # Dlow's Q net
         self.qnet_mlp = cfg.get('qnet_mlp', [512, 256])
         self.q_mlp = MLP(self.pred_model_dim, [256], 'relu')
-        self.q_b = nn.Linear(self.q_mlp.out_dim * 2, nz)
+        self.q_b = nn.Linear(self.q_mlp.out_dim, nz)
 
     def set_device(self, device):
         self.device = device
