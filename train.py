@@ -9,7 +9,7 @@ import PIL
 PYTHON_EXECUTABLE = sys.executable
 
 def python_call(file, args):
-    print(" ".join(["python", file, args]))
+    print(" ".join(["python", file, args]), flush=True)
     with open("agentformer.log", "a+", buffering=1) as f:
         p = subprocess.Popen([PYTHON_EXECUTABLE, file] + args.split(), stdout=f, stderr=f, bufsize=0)
         while p.poll() is None:
@@ -29,7 +29,7 @@ def agentFormerStepTrain(from_epoch, to_epoch):
                 yaml.dump(cfg, fo)
 
 
-    prepareAgentFormerConfig(num_epochs=to_epoch)
+    prepareAgentFormerConfig(num_epochs=to_epoch, model_save_freq=5)
     python_call("model_train.py", f"--cfg ss_pre_generated --gpu 0 --start_epoch={from_epoch}")
 
 def envPredStepTrain(from_epoch, to_epoch, af_epoch):
@@ -40,19 +40,26 @@ def envPredStepTrain(from_epoch, to_epoch, af_epoch):
                 cfg.update(update_dict)
                 yaml.dump(cfg, fo)
 
-    prepareEnvPredConfig(pred_cfg="ss_pre_generated", pred_epoch=af_epoch, num_epochs=to_epoch, print_freq=1)
+    prepareEnvPredConfig(pred_cfg="ss_pre_generated", pred_epoch=af_epoch, num_epochs=to_epoch, print_freq=1, model_save_freq=3)
     python_call("model_train.py", f"--cfg ss_env_generated --gpu 0 --start_epoch={from_epoch}")
 
 def generateRandomConfig(ev_epoch):
     python_call("test_env.py", f"--cfg ss_env_generated --gpu 0 --epoch={ev_epoch} --random_latent")
 
 
-bs = 50
-es = 10
-agentFormerStepTrain(from_epoch=0, to_epoch=50)
-envPredStepTrain(from_epoch=0, to_epoch=10, af_epoch=50)
-generateRandomConfig(ev_epoch=10)
-for step in range(20):
-    agentFormerStepTrain(from_epoch=20*step+bs, to_epoch=20*(step+1)+bs)
-    envPredStepTrain(from_epoch=10*step+es, to_epoch=10*(step+1)+es, af_epoch=20*(step+1)+bs)
-    generateRandomConfig(ev_epoch=10*(step+1)+es)
+if True:
+    bs = 0
+    es = 0
+    if bs != 0:  # warm up
+        agentFormerStepTrain(from_epoch=0, to_epoch=bs)
+        envPredStepTrain(from_epoch=0, to_epoch=es, af_epoch=bs)
+        generateRandomConfig(ev_epoch=es)
+
+    be=10
+    ee=3
+    for step in range(20):
+        agentFormerStepTrain(from_epoch=be*step+bs, to_epoch=be*(step+1)+bs)
+        envPredStepTrain(from_epoch=ee*step+es, to_epoch=ee*(step+1)+es, af_epoch=be*(step+1)+bs)
+        generateRandomConfig(ev_epoch=ee*(step+1)+es)
+
+#generateRandomConfig(ev_epoch=1)
