@@ -53,7 +53,7 @@ class EnvPred(nn.Module):
         # Dlow's Q net
         self.qnet_mlp = cfg.get('qnet_mlp', [512, 256])
         self.q_mlp = MLP(self.pred_model_dim, [256], 'relu')
-        self.q_b = nn.Linear(self.q_mlp.out_dim, nz)
+        self.q_b = nn.Sequential(nn.Linear(self.q_mlp.out_dim, nz), nn.Tanh())
 
     def set_device(self, device):
         self.device = device
@@ -75,7 +75,6 @@ class EnvPred(nn.Module):
         latent_vec = target_latent.mean(0, keepdim=True)
         qnet_h = self.q_mlp(latent_vec)
         b = self.q_b(qnet_h).view(-1, self.nz)
-
         self.data['env_pred'] = b
 
         return self.data
@@ -96,7 +95,7 @@ class EnvPred(nn.Module):
             loss, loss_unweighted = loss_func[loss_name](self.data, self.loss_cfg[loss_name])
             total_loss += loss
             loss_dict[loss_name] = loss.item()
-            loss_unweighted_dict[loss_name] = loss_unweighted.item()
+            loss_unweighte_dict[loss_name] = loss_unweighted.item()
         return total_loss, loss_dict, loss_unweighted_dict
 
     def step_annealer(self):

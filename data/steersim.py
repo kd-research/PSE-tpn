@@ -14,6 +14,8 @@ def get_steersim_split(_):
            [f"steersim{i:02}" for i in range(201, 211)], \
            [f"steersim{i:02}" for i in range(221, 231)]
 
+    split = [], [], [f"steersim{i:02}" for i in range(221, 231)]
+
     if os.getenv("SteersimRecordPath"):
         trainGlob = glob.glob(os.getenv("SteersimRecordPath")+"/*.bin")
         train_seq_name = [os.path.basename(x)[:-4] for x in trainGlob]

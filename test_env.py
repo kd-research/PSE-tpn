@@ -99,7 +99,9 @@ def test_model(generator, save_dir, cfg, random_latent):
         num_pred = save_prediction(gt_motion_3D, data, '', gt_dir)  # save gt
         losses.append(float(RMSELoss(gt_motion_3D, recon_motion_3D)))
         if random_latent:
-            steersim_call_parallel(recon_motion_3D.detach().cpu().numpy())
+            params_cont = recon_motion_3D.detach().cpu().numpy()
+            params_desc = np.rint(params_cont)
+            steersim_call_parallel(params_desc)
         total_num_pred += num_pred
 
     while not generator.is_epoch_end():
@@ -107,7 +109,7 @@ def test_model(generator, save_dir, cfg, random_latent):
         if data is None:
             continue
         if random_latent:
-            for i in range(200):
+            for i in range(50):
                 test_once(data)
             break
         else:

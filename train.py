@@ -4,6 +4,7 @@ import time
 import sys
 import os
 import PIL
+from data.steersim_quest import steersim_call_parallel
 
 #os.environ["PYTHONPATH"] = os.path.realpath(__file__) + ";" + os.getenv("PYTHONPATH", "")
 PYTHON_EXECUTABLE = sys.executable
@@ -46,8 +47,23 @@ def envPredStepTrain(from_epoch, to_epoch, af_epoch):
 def generateRandomConfig(ev_epoch):
     python_call("test_env.py", f"--cfg ss_env_generated --gpu 0 --epoch={ev_epoch} --random_latent")
 
+def initial_sample_steersim():
+    import os
+    import shutil
+    import numpy as np
+    from dotenv import load_dotenv
+
+    load_dotenv(verbose=True)
+    shutil.rmtree(os.getenv("SteersimRecordPath"), ignore_errors=True)
+    os.makedirs(os.getenv("SteersimRecordPath"), exist_ok=True)
+    numbers = np.rint(np.random.uniform(0, 1, (50, 43)))
+    steersim_call_parallel(numbers)
+    numbers = np.rint(np.random.uniform(0, 1, (50, 43)))
+    steersim_call_parallel(numbers, generate_for_testcases=True)
 
 if True:
+    initial_sample_steersim()
+
     bs = 0
     es = 0
     if bs != 0:  # warm up
