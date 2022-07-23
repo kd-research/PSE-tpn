@@ -98,7 +98,10 @@ if __name__ == '__main__':
     """ model """
     model_id = cfg.get('model_id', 'agentformer')
     model = model_dict[model_id](cfg)
-    optimizer = optim.RMSprop(model.parameters(), lr=cfg.lr)
+    if model_id == "envpred":
+        optimizer = optim.SGD(model.parameters(), lr=cfg.lr)
+    else:
+        optimizer = optim.Adam(model.parameters(), lr=cfg.lr)
     scheduler_type = cfg.get('lr_scheduler', 'linear')
     if scheduler_type == 'linear':
         scheduler = get_scheduler(optimizer, policy='lambda', nepoch_fix=cfg.lr_fix_epochs, nepoch=cfg.num_epochs)

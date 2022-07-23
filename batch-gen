@@ -1,0 +1,22 @@
+#!/bin/bash
+
+##SBATCH --chdir=
+#SBATCH --job-name=batch-kaidong
+#SBATCH --output=job.%j.out
+#SBATCH --ntasks=4
+#SBATCH --cpus-per-task=8
+ 
+export SINGULARITY_LOCALCACHEDIR=`pwd`/tmp
+export SINGULARITY_TMPDIR=`pwd`/tmp
+mkdir -p $SINGULARITY_TMPDIR
+set -xe
+module load singularity || true
+
+rm -rf cfg/tmp/*
+rm -rf results
+rm -rf tmp
+
+singularity exec $HOME/sifs/torch-220721.sif /opt/conda/envs/torch/bin/python3 train.py
+
+
+echo 'Finished on ' `date`
