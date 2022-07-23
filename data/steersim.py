@@ -14,7 +14,7 @@ def get_steersim_split(_):
            [f"steersim{i:02}" for i in range(201, 211)], \
            [f"steersim{i:02}" for i in range(221, 231)]
 
-    split = [], [], [f"steersim{i:02}" for i in range(221, 231)]
+    split = [], [], []
 
     if os.getenv("SteersimRecordPath"):
         trainGlob = glob.glob(os.getenv("SteersimRecordPath")+"/*.bin")
@@ -23,6 +23,7 @@ def get_steersim_split(_):
         cv_seq_name = [os.path.basename(x)[:-4] for x in cvGlob]
         split[0].extend(train_seq_name)
         split[1].extend(cv_seq_name)
+        split[2].extend(cv_seq_name)
     return split
 
 
@@ -55,6 +56,8 @@ class steersimProcess(preprocess):
             label_path = f'{data_root}/{seq_name}.bin'
             if not os.path.exists(label_path):
                 label_path = f'{os.environ["SteersimRecordPath"]}/{seq_name}.bin'
+            if not os.path.exists(label_path):
+                label_path = f'{os.environ["SteersimRecordPath"]}/test/{seq_name}.bin'
         else:
             assert False, 'error'
 
@@ -93,6 +96,7 @@ class steersimProcess(preprocess):
             parameter_size = np.fromfile(file, np.int32, 1)[0]
             logger.debug("Reading parameter info section, size %d", parameter_size)
             parameters = np.fromfile(file, dtype=np.float32, count=parameter_size)
+            parameters = parameters * 2 - 1
 
             agent_array = []
             while file.tell() < eof:
@@ -103,7 +107,7 @@ class steersimProcess(preprocess):
 
             gt_matrix = []
             for agentId, agent_matrix in enumerate(agent_array):
-                agent_matrix = agent_matrix[:1200:30, :]  # sample in 1 fps
+                agent_matrix = agent_matrix[:900:30, :]  # sample in 1 fps
                 frame_length = agent_matrix.shape[0]
                 gt_extend = np.full([frame_length, 17], -1, dtype=np.float32)
                 gt_extend[:, 0] = np.arange(frame_length)  # frame_num

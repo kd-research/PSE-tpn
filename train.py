@@ -54,16 +54,17 @@ def initial_sample_steersim():
     from dotenv import load_dotenv
 
     load_dotenv(verbose=True)
-    shutil.rmtree(os.getenv("SteersimRecordPath"), ignore_errors=True)
-    os.makedirs(os.getenv("SteersimRecordPath"), exist_ok=True)
-    numbers = np.rint(np.random.uniform(0, 1, (50, 43)))
+#    shutil.rmtree(os.getenv("SteersimRecordPath"), ignore_errors=True)
+#    os.makedirs(os.getenv("SteersimRecordPath"), exist_ok=True)
+    numbers = np.rint(np.random.uniform(0, 1, (80, 43)))
     steersim_call_parallel(numbers)
-    numbers = np.rint(np.random.uniform(0, 1, (50, 43)))
+    numbers = np.rint(np.random.uniform(0, 1, (10, 43)))
     steersim_call_parallel(numbers, generate_for_testcases=True)
 
 if True:
     initial_sample_steersim()
 
+if False:
     bs = 0
     es = 0
     if bs != 0:  # warm up

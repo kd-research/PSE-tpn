@@ -194,7 +194,7 @@ def initialize_weights(modules):
             if m.bias is not None: nn.init.constant_(m.bias, 0)
 
 
-def print_log(print_str, log, same_line=False, display=True):
+def print_log(print_str, log, same_line=False, to_begin=False, display=True):
 	'''
 	print a string to a log file
 
@@ -205,7 +205,11 @@ def print_log(print_str, log, same_line=False, display=True):
 		display:            False if we want to disable to print the string onto the terminal
 	'''
 	if display:
-		if same_line: print('{}'.format(print_str), end='')
+		if same_line: 
+                    if to_begin:
+                        print('{}'.format(print_str), end='\r')
+                    else:
+                        print('{}'.format(print_str), end='')
 		else: print('{}'.format(print_str))
 
 	if same_line: log.write('{}'.format(print_str))

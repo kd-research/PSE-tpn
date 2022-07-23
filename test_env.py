@@ -72,7 +72,8 @@ def test_model(generator, save_dir, cfg, random_latent):
     def RMSELoss(yhat, y):
         yhat = yhat.cpu().numpy()
         y = y.cpu().numpy()
-        return np.sum((yhat-y)**2)
+        #return np.sum((yhat-y)**2)
+        return np.sum(np.abs(yhat-y) < 1) / y.ravel().size
 
     def test_once(data):
         nonlocal total_num_pred
@@ -100,7 +101,9 @@ def test_model(generator, save_dir, cfg, random_latent):
         losses.append(float(RMSELoss(gt_motion_3D, recon_motion_3D)))
         if random_latent:
             params_cont = recon_motion_3D.detach().cpu().numpy()
+            print("params_cont", params_cont)
             params_desc = np.rint(params_cont)
+            print("params_desc", params_cont)
             steersim_call_parallel(params_desc)
         total_num_pred += num_pred
 
@@ -117,6 +120,7 @@ def test_model(generator, save_dir, cfg, random_latent):
 
     PROCESS_POOL.close()
     PROCESS_POOL.join()
+    print()
     print("Average loss: ", sum(losses) / len(losses))
     print_log(f'\n\n total_num_pred: {total_num_pred}', log)
 

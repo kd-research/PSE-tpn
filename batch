@@ -3,7 +3,7 @@
 ##SBATCH --chdir=
 #SBATCH --job-name=batch-kaidong
 #SBATCH --output=job.%j.out
-#SBATCH --ntasks=1
+#SBATCH --ntasks=16
 #SBATCH --nodes=1
 #SBATCH --partition=gpu
 #SBATCH --gres=gpu:1
@@ -13,19 +13,35 @@ export SINGULARITY_LOCALCACHEDIR=`pwd`/tmp
 export SINGULARITY_TMPDIR=`pwd`/tmp
 mkdir -p $SINGULARITY_TMPDIR
 set -xe
-nvidia-smi
-module load singularity
+module load singularity || true
 
-jobtype='active'
+remove_file='false'
+if [[ $remove_file == 'true' ]]; then
+rm -rf cfg/tmp/* || true
+rm -rf results || true
+rm -rf tmp || true
+fi
+
+jobtype='batch'
+sif_path=$HOME/sifs/torch-220721.sif
+py_path=/opt/conda/envs/torch/bin/python3
+
 if [[ $jobtype == 'active' ]]; then
-singularity exec --nv $HOME/sifs/torch-220415.sif /local/conda/envs/torch/bin/python3 train.py
+rm -rf steersimRecord
+singularity exec --nv $sif_path $py_path train.py
 fi
 
 if [[ $jobtype == 'batch' ]]; then
-#singularity exec --nv $HOME/sifs/torch-220415.sif /local/conda/envs/torch/bin/python3 steersimrandgen.py
-singularity exec --nv $HOME/sifs/torch-220415.sif /local/conda/envs/torch/bin/python3 model_train.py --cfg steersim_pre --gpu 0
-singularity exec --nv $HOME/sifs/torch-220415.sif /local/conda/envs/torch/bin/python3 model_train.py --cfg steersim_env --gpu 0
+#singularity exec --nv $sif_path $py_path model_train.py --cfg steersim_pre --gpu 0
+singularity exec --nv $sif_path $py_path model_train.py --cfg steersim_env --gpu 0
+singularity exec --nv $sif_path $py_path test_env.py --cfg steersim_env --gpu 0 --data_eval train > train_result.txt
+singularity exec --nv $sif_path $py_path test_env.py --cfg steersim_env --gpu 0 --data_eval test > test_result.txt
 fi
 
-nvidia-smi
+if [[ $jobtype == 'generate' ]]; then
+rm -rf steersimRecord
+singularity exec $sif_path $py_path train.py
+fi
+
+
 echo 'Finished on ' `date`
