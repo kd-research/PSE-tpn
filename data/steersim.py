@@ -32,7 +32,7 @@ class steersimProcess(preprocess):
                  data_root,
                  seq_name,
                  parser,
-                 log,
+                 log, # Unused
                  split='train',
                  phase='training'):
         self.parser = parser
