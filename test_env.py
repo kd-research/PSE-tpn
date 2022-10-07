@@ -68,6 +68,7 @@ def save_prediction(pred, data, suffix, save_dir):
 def test_model(generator, save_dir, cfg, random_latent):
     total_num_pred = 0
     losses = []
+    pickle_obj = []
 
     def RMSELoss(yhat, y):
         yhat = yhat.cpu().numpy()
@@ -87,6 +88,14 @@ def test_model(generator, save_dir, cfg, random_latent):
         with torch.no_grad():
             recon_motion_3D, sample_motion_3D = get_model_prediction(data, cfg.sample_k, random_latent)
 
+        seq_name = data['seq']
+        env_param = data['env_parameter']
+        context_v = model.data['context_enc'].detach().cpu().numpy()
+        assert(isinstance(seq_name, str))
+        assert(isinstance(env_param, np.ndarray))
+        assert(isinstance(context_v, np.ndarray))
+        pickle_obj.append((seq_name, env_param, context_v))
+        
         """save samples"""
         recon_dir = os.path.join(save_dir, 'recon');
         mkdir_if_missing(recon_dir)
@@ -118,6 +127,10 @@ def test_model(generator, save_dir, cfg, random_latent):
         else:
             test_once(data)
 
+    import pickle
+    with open(f"{args.data_eval}.pkl", "wb") as f:
+        print(f"Serialized {len(pickle_obj)} data")
+        pickle.dump(pickle_obj, f)
     PROCESS_POOL.close()
     PROCESS_POOL.join()
     print()
@@ -131,7 +144,7 @@ if __name__ == '__main__':
     PROCESS_POOL = multiprocessing.Pool() #use all available cores, otherwise specify the number you want as an argument
     dotenv.load_dotenv()
     parser = argparse.ArgumentParser()
-    parser.add_argument('--cfg', default=None)
+    parser.add_argument('--cfg', default='steersim_env')
     parser.add_argument('--data_eval', default='test')
     parser.add_argument('--epochs', default=None)
     parser.add_argument('--gpu', type=int, default=0)

@@ -1,11 +1,11 @@
-import subprocess
-import logging
-from multiprocessing import Pool
-from os import environ, makedirs
-from subprocess import Popen
-from dotenv import load_dotenv
+import subprocess 
+import logging 
+import numpy as np 
 
-import numpy as np
+from multiprocessing import Pool 
+from os import environ, makedirs 
+from subprocess import Popen 
+from dotenv import load_dotenv 
 
 logger = logging.getLogger(__name__)
 
@@ -21,14 +21,14 @@ def steersim_call(query, env):
         logging.error('From subprocess err: %r', stderr_line)
 
 
-def steersim_call_parallel(queries, generate_for_testcases=False):
+def steersim_call_parallel(queries, generate_for_testcases=False, subfix=""):
     """
     Steersim arguments must be a list of numbers [len_query, len_parameters]
     """
     SteersimRecordPath = "SteersimRecordPath"
     env = environ.copy()
     if generate_for_testcases:
-        env[SteersimRecordPath] = env[SteersimRecordPath] + "/test"
+        env[SteersimRecordPath] = env[SteersimRecordPath] + "/test" + subfix
 
     makedirs(env[SteersimRecordPath], exist_ok=True)
     queries = np.clip(queries, 0, 1)

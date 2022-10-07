@@ -80,7 +80,8 @@ class EnvPred(nn.Module):
             self.data['map_enc'] = pred_model.map_encoder(self.data['agent_maps'])
         pred_model.context_encoder(self.data)
         target_latent = self.data['context_enc']
-        padded = torch.zeros((256, 4500), device=self.device)
+        lsize = target_latent.shape[-1]
+        padded = torch.zeros((lsize, 4500), device=self.device)
         pad_len = min(target_latent.shape[0], 4500)
         padded[:, 0:pad_len] = target_latent[0:pad_len, 0, :].T
         if random_latent:
@@ -95,7 +96,7 @@ class EnvPred(nn.Module):
     def forward(self):
         return self.main()
 
-    def inference(self, random_latent=False):
+    def inference(self, *args, random_latent=False, **kwargs):
         self.main(random_latent=random_latent)
         res = self.data['env_pred']
         return res, self.data

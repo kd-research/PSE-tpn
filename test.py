@@ -89,6 +89,9 @@ def test_model(generator, save_dir, cfg):
         assert total_num_pred == scene_num[generator.split]
 
 if __name__ == '__main__':
+    from dotenv import load_dotenv
+
+    load_dotenv(verbose=True)
 
     parser = argparse.ArgumentParser()
     parser.add_argument('--cfg', default=None)
@@ -137,7 +140,7 @@ if __name__ == '__main__':
                 test_model(generator, save_dir, cfg)
 
             log_file = os.path.join(cfg.log_dir, 'log_eval.txt')
-            cmd = f"python eval.py --dataset {cfg.dataset} --results_dir {eval_dir} --data {split} --log {log_file}"
+            cmd = f"/opt/conda/envs/torch/bin/python3 eval.py --dataset {cfg.dataset} --results_dir {eval_dir} --data {split} --log {log_file}"
             subprocess.run(cmd.split(' '))
 
             # remove eval folder to save disk space

@@ -3,8 +3,10 @@ import numpy as np
 import argparse
 from data.nuscenes_pred_split import get_nuscenes_pred_split
 from data.ethucy_split import get_ethucy_split
-from utils.utils import print_log, AverageMeter, isfile, print_log, AverageMeter, isfile, isfolder, find_unique_common_from_lists, load_list_from_folder, load_txt_file
-from data.steersim import get_steersim_split
+from data.preprocessor import preprocess
+from data.steersim import get_steersim_split, steersimProcess
+from utils.utils import print_log, AverageMeter, isfile, isfolder, find_unique_common_from_lists, load_list_from_folder, load_txt_file
+from collections import namedtuple
 
 
 """ Metrics """
@@ -41,6 +43,17 @@ def align_gt(pred, gt):
     return pred_new, gt_new
 
 
+class AttrDict(dict):
+    def __init__(self, *args, **kwargs):
+        super(AttrDict, self).__init__(*args, **kwargs)
+        self.__dict__ = self
+
+def MockedParser(**kwargs):
+    d = AttrDict()
+    d.update(kwargs)
+    return d
+
+
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
@@ -58,14 +71,19 @@ if __name__ == '__main__':
         gt_dir = f'{data_root}/label/{args.data}'
         seq_train, seq_val, seq_test = get_nuscenes_pred_split(data_root)
         seq_eval = globals()[f'seq_{args.data}']
+        process_func = preprocess
     elif dataset == 'steersim':
         gt_dir = f'datasets/{args.dataset}'
         seq_train, seq_val, seq_test = get_steersim_split(args.dataset)
         seq_eval = globals()[f'seq_{args.data}']
-    else:                            # ETH/UCY
+        process_func = steersimProcess
+    elif dataset in {'eth', 'hotel', 'univ', 'zara1', 'zara2'}:                            # ETH/UCY
         gt_dir = f'datasets/eth_ucy/{args.dataset}'
         seq_train, seq_val, seq_test = get_ethucy_split(args.dataset)
         seq_eval = globals()[f'seq_{args.data}']
+        process_func = preprocess
+    else:
+        raise ValueError('Unknown dataset!')
 
     if args.log_file is None:
         log_file = os.path.join(results_dir, 'log_eval.txt')
@@ -82,10 +100,14 @@ if __name__ == '__main__':
 
     stats_meter = {x: AverageMeter() for x in stats_func.keys()}
 
-    seq_list, num_seq = load_list_from_folder(gt_dir)
+    #seq_list, num_seq = load_list_from_folder(gt_dir)
     print_log('\n\nnumber of sequences to evaluate is %d' % len(seq_eval), log_file)
     for seq_name in seq_eval:
         # load GT raw data
+        parser = MockedParesr(dataset=dataset, past_frames=18, future_frames=12, traj_scale=2)
+        preprocessor = process_func(data_root, seq_name, parser, None, 'val', 'testing')
+        gt_data = preprocessor.gt
+        del preprocessor
         gt_data, _ = load_txt_file(os.path.join(gt_dir, seq_name+'.txt'))
         gt_raw = []
         for line_data in gt_data:

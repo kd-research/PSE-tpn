@@ -21,9 +21,11 @@ def get_steersim_split(_):
         train_seq_name = [os.path.basename(x)[:-4] for x in trainGlob]
         cvGlob = glob.glob(os.getenv("SteersimRecordPath")+"/test/*.bin")
         cv_seq_name = [os.path.basename(x)[:-4] for x in cvGlob]
+        tstGlob = glob.glob(os.getenv("SteersimRecordPath")+"/test1/*.bin")
+        tst_seq_name = [os.path.basename(x)[:-4] for x in tstGlob]
         split[0].extend(train_seq_name)
         split[1].extend(cv_seq_name)
-        split[2].extend(cv_seq_name)
+        split[2].extend(tst_seq_name)
     return split
 
 
@@ -32,7 +34,7 @@ class steersimProcess(preprocess):
                  data_root,
                  seq_name,
                  parser,
-                 log,
+                 log, # Unused
                  split='train',
                  phase='training'):
         self.parser = parser
@@ -41,6 +43,7 @@ class steersimProcess(preprocess):
         self.past_frames = parser.past_frames
         self.future_frames = parser.future_frames
         self.frame_skip = parser.get('frame_skip', 1)
+        self.play_speed = parser.get('play_speed', 1)
         self.min_past_frames = parser.get('min_past_frames', self.past_frames)
         self.min_future_frames = parser.get('min_future_frames', self.future_frames)
         self.traj_scale = parser.traj_scale
@@ -58,10 +61,13 @@ class steersimProcess(preprocess):
                 label_path = f'{os.environ["SteersimRecordPath"]}/{seq_name}.bin'
             if not os.path.exists(label_path):
                 label_path = f'{os.environ["SteersimRecordPath"]}/test/{seq_name}.bin'
+            if not os.path.exists(label_path):
+                label_path = f'{os.environ["SteersimRecordPath"]}/test1/{seq_name}.bin'
+            assert os.path.exists(label_path)
         else:
             assert False, 'error'
 
-        self.gt, self.parm = self.read_trajectory_binary(label_path)
+        self.gt, self.parm = self.read_trajectory_binary(label_path, self.play_speed)
         frames = self.gt[:, 0].astype(np.float32).astype(np.int)
         fr_start, fr_end = frames.min(), frames.max()
         self.init_frame = fr_start
@@ -75,7 +81,7 @@ class steersimProcess(preprocess):
         self.xind, self.zind = 13, 15
 
     @staticmethod
-    def read_trajectory_binary(filename):
+    def read_trajectory_binary(filename, playspeed=1):
         """
         :param filename:
         :return:
@@ -107,7 +113,7 @@ class steersimProcess(preprocess):
 
             gt_matrix = []
             for agentId, agent_matrix in enumerate(agent_array):
-                agent_matrix = agent_matrix[:900:30, :]  # sample in 1 fps
+                agent_matrix = agent_matrix[:900:playspeed, :]
                 frame_length = agent_matrix.shape[0]
                 gt_extend = np.full([frame_length, 17], -1, dtype=np.float32)
                 gt_extend[:, 0] = np.arange(frame_length)  # frame_num

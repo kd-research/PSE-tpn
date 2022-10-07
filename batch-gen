@@ -1,10 +1,10 @@
 #!/bin/bash
 
 ##SBATCH --chdir=
-#SBATCH --job-name=batch-kaidong
+#SBATCH --job-name=dgen
 #SBATCH --output=job.%j.out
-#SBATCH --ntasks=4
-#SBATCH --cpus-per-task=8
+#SBATCH --ntasks=5
+#SBATCH --cpus-per-task=30
  
 export SINGULARITY_LOCALCACHEDIR=`pwd`/tmp
 export SINGULARITY_TMPDIR=`pwd`/tmp
@@ -16,7 +16,7 @@ rm -rf cfg/tmp/*
 rm -rf results
 rm -rf tmp
 
-singularity exec $HOME/sifs/torch-220721.sif /opt/conda/envs/torch/bin/python3 train.py
+srun -n 5 singularity exec $HOME/sifs/hlsix-220922.sif /opt/conda/envs/torch/bin/python3 train.py
 
 
 echo 'Finished on ' `date`
