@@ -36,7 +36,9 @@ class steersimProcess(preprocess):
                  parser,
                  log, # Unused
                  split='train',
-                 phase='training'):
+                 phase='training',
+                 *,
+                 _fn_read_traj_binary=None):
         self.parser = parser
         self.dataset = parser.dataset
         self.data_root = data_root
@@ -63,12 +65,13 @@ class steersimProcess(preprocess):
                 label_path = f'{os.environ["SteersimRecordPath"]}/test/{seq_name}.bin'
             if not os.path.exists(label_path):
                 label_path = f'{os.environ["SteersimRecordPath"]}/test1/{seq_name}.bin'
-            assert os.path.exists(label_path)
+            assert os.path.exists(label_path) or _fn_read_traj_binary is not None
         else:
             assert False, 'error'
-
-        self.gt, self.parm = self.read_trajectory_binary(label_path, self.play_speed)
-        frames = self.gt[:, 0].astype(np.float32).astype(np.int)
+        if _fn_read_traj_binary is None:
+            _fn_read_traj_binary = self.read_trajectory_binary
+        self.gt, self.parm = _fn_read_traj_binary(label_path, self.play_speed)
+        frames = self.gt[:, 0].astype(np.float32).astype(np.int32)
         fr_start, fr_end = frames.min(), frames.max()
         self.init_frame = fr_start
         self.num_fr = fr_end + 1 - fr_start
