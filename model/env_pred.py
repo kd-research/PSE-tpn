@@ -74,11 +74,13 @@ class EnvPred(nn.Module):
         self.pred_model[0].set_data(data)
         self.data = self.pred_model[0].data
 
-    def main(self, random_latent=False):
+    def main(self, random_latent=False, need_z=False):
         pred_model = self.pred_model[0]
         if hasattr(pred_model, 'use_map') and pred_model.use_map:
             self.data['map_enc'] = pred_model.map_encoder(self.data['agent_maps'])
         pred_model.context_encoder(self.data)
+        if need_z:
+            pred_model.future_encoder(self.data)
         target_latent = self.data['context_enc']
         lsize = target_latent.shape[-1]
         padded = torch.zeros((lsize, 4500), device=self.device)
@@ -97,7 +99,7 @@ class EnvPred(nn.Module):
         return self.main()
 
     def inference(self, *args, random_latent=False, **kwargs):
-        self.main(random_latent=random_latent)
+        self.main(random_latent=random_latent, need_z=True)
         res = self.data['env_pred']
         return res, self.data
 

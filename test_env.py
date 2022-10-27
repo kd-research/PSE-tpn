@@ -91,10 +91,12 @@ def test_model(generator, save_dir, cfg, random_latent):
         seq_name = data['seq']
         env_param = data['env_parameter']
         context_v = model.data['context_enc'].detach().cpu().numpy()
+        z = model.data['q_z_dist'].mode().detach().cpu().numpy()
         assert(isinstance(seq_name, str))
         assert(isinstance(env_param, np.ndarray))
         assert(isinstance(context_v, np.ndarray))
-        pickle_obj.append((seq_name, env_param, context_v))
+        assert(isinstance(z, np.ndarray))
+        pickle_obj.append((seq_name, env_param, context_v, z))
         
         """save samples"""
         recon_dir = os.path.join(save_dir, 'recon');
