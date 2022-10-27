@@ -12,7 +12,9 @@ class preprocess(object):
                  parser,
                  log,
                  split='train',
-                 phase='training'):
+                 phase='training',
+                 *,
+                 _fn_np_genfromtxt=np.genfromtxt):
         self.parser = parser
         self.dataset = parser.dataset
         self.data_root = data_root
@@ -39,8 +41,8 @@ class preprocess(object):
         else:
             assert False, 'error'
 
-        self.gt = np.genfromtxt(label_path, delimiter=delimiter, dtype=str)
-        frames = self.gt[:, 0].astype(np.float32).astype(np.int)
+        self.gt = _fn_np_genfromtxt(label_path, delimiter=delimiter, dtype=str)
+        frames = self.gt[:, 0].astype(np.float32).astype(np.int32)
         fr_start, fr_end = frames.min(), frames.max()
         self.init_frame = fr_start
         self.num_fr = fr_end + 1 - fr_start
