@@ -169,6 +169,7 @@ class preprocess(object):
         fut_data = self.FutureData(frame)
         valid_id = self.get_valid_id(pre_data, fut_data)
         if len(pre_data[0]) == 0 or len(fut_data[0]) == 0 or len(valid_id) == 0:
+            raise
             return None
 
         if self.dataset == 'nuscenes_pred':

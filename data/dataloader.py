@@ -15,6 +15,7 @@ class data_generator(object):
         self.frame_skip = parser.get('frame_skip', 1)
         self.phase = phase
         self.split = split
+        self.dataset = parser.dataset
         assert phase in ['training', 'testing'], 'error'
         assert split in ['train', 'val', 'test'], 'error'
 
@@ -49,8 +50,10 @@ class data_generator(object):
         for seq_name in self.sequence_to_load:
             print_log("loading sequence {} ...".format(seq_name), log=log, same_line=True, to_begin=True)
             preprocessor = process_func(data_root, seq_name, parser, log, self.split, self.phase)
-
-            num_seq_samples = preprocessor.num_fr - (parser.min_past_frames + parser.min_future_frames - 1) * self.frame_skip
+            if self.dataset == "steersim":
+                num_seq_samples = 1
+            else:
+                num_seq_samples = preprocessor.num_fr - (parser.min_past_frames + parser.min_future_frames - 1) * self.frame_skip
             self.num_total_samples += num_seq_samples
             self.num_sample_list.append(num_seq_samples)
             self.sequence.append(preprocessor)
@@ -69,7 +72,8 @@ class data_generator(object):
             if index_tmp < self.num_sample_list[seq_index]:
                 frame_index = index_tmp + (self.min_past_frames - 1) * self.frame_skip
                 frame_index += self.sequence[seq_index].init_frame     # from 0-indexed list index to 1-indexed frame index (for mot)
-                frame_index += self.past_frames
+                if self.dataset == "steersim":
+                    frame_index += self.past_frames
                 return seq_index, frame_index
             else:
                 index_tmp -= self.num_sample_list[seq_index]

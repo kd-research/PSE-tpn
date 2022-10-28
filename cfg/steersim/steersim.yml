@@ -12,8 +12,8 @@ data_root_steersim           : datasets/steersim
 
 past_frames                  : 8
 future_frames                : 12
-min_past_frames              : 20
-min_future_frames            : 20
+min_past_frames              : 1
+min_future_frames            : 1
 
 traj_scale                   : 2
 motion_dim                   : 2

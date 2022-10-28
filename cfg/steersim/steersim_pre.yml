@@ -10,7 +10,7 @@ data_root_steersim           : datasets/steersim
 
 # ------------------- Feature Extractor -------------------------
 
-past_frames                  : 18
+past_frames                  : 8
 future_frames                : 12
 min_past_frames              : 1
 min_future_frames            : 1
@@ -18,13 +18,14 @@ min_future_frames            : 1
 traj_scale                   : 2
 motion_dim                   : 2
 forecast_dim                 : 2
+play_speed                   : 6
 
 # ------------------- Model -------------------------
 
 model_id: agentformer
 tf_version: v2
-tf_model_dim: 256
-tf_ff_dim: 512
+tf_model_dim: 8
+tf_ff_dim: 64
 tf_nhead: 8
 tf_dropout: 0.1
 input_type: ['scene_norm']
@@ -48,8 +49,8 @@ future_encoder:
 
 # ------------------- VAE-------------------------
 
-nz                           : 32
-sample_k                     : 20
+nz                           : 1
+sample_k                     : 1
 learn_prior                  : true
 
 # ------------------- Training Parameters -------------------------
