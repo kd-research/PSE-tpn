@@ -2,8 +2,6 @@ import unittest
 
 
 class TestDataLoader(unittest.TestCase):
-    maxDiff = None
-
     def test_load_data(self):
         pass
 

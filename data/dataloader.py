@@ -1,15 +1,31 @@
-from data.nuscenes_pred_split import get_nuscenes_pred_split
-import os, random, numpy as np, copy
+import copy
+import random
 
-from .preprocessor import preprocess
-from .ethucy_split import get_ethucy_split
-from .steersim import get_steersim_split, steersimProcess
 from utils.utils import print_log
+from .ethucy_split import get_ethucy_split
+from .nuscenes_pred_split import get_nuscenes_pred_split
+from .preprocessor import preprocess
+from .steersim import get_steersim_split, steersimProcess
 
 
 class data_generator(object):
+    _impl_get_data_splits = {
+        "get_ethucy_split": get_ethucy_split,
+        "get_nuscenes_pred_split": get_nuscenes_pred_split,
+        "get_steersim_split": get_steersim_split
+    }
 
-    def __init__(self, parser, log, split='train', phase='training'):
+    _impl_preprocess = {
+        "preprocess": preprocess,
+        "steersimProcess": steersimProcess
+    }
+
+    def __init__(self, parser, log, split='train', phase='training', *,
+                 _fn_get_data_splits=None, _cls_preprocess=None):
+
+        _fn_get_data_splits = _fn_get_data_splits or data_generator._impl_get_data_splits
+        _cls_preprocess = _cls_preprocess or data_generator._impl_preprocess
+
         self.past_frames = parser.past_frames
         self.min_past_frames = parser.min_past_frames
         self.frame_skip = parser.get('frame_skip', 1)
@@ -20,19 +36,21 @@ class data_generator(object):
         assert split in ['train', 'val', 'test'], 'error'
 
         if parser.dataset == 'nuscenes_pred':
-            data_root = parser.data_root_nuscenes_pred           
-            seq_train, seq_val, seq_test = get_nuscenes_pred_split(data_root)
+            data_root = parser.data_root_nuscenes_pred
+            seq_train, seq_val, seq_test = _fn_get_data_splits["get_nuscenes_pred_split"].__call__(data_root)
             self.init_frame = 0
-            process_func = preprocess
+            process_cls = _cls_preprocess["preprocess"]
+
         elif parser.dataset in {'eth', 'hotel', 'univ', 'zara1', 'zara2'}:
-            data_root = parser.data_root_ethucy            
-            seq_train, seq_val, seq_test = get_ethucy_split(parser.dataset)
+            data_root = parser.data_root_ethucy
+            seq_train, seq_val, seq_test = _fn_get_data_splits["get_ethucy_split"].__call__(parser.dataset)
             self.init_frame = 0
-            process_func = preprocess
+            process_cls = _cls_preprocess["preprocess"]
+
         elif parser.dataset == "steersim":
             data_root = parser.data_root_steersim
-            seq_train, seq_val, seq_test = get_steersim_split(parser.dataset)
-            process_func = steersimProcess
+            seq_train, seq_val, seq_test = _fn_get_data_splits["get_steersim_split"].__call__(parser.dataset)
+            process_cls = _cls_preprocess["steersimProcess"]
         else:
             raise ValueError('Unknown dataset!')
 
@@ -49,7 +67,7 @@ class data_generator(object):
         self.sequence = []
         for seq_name in self.sequence_to_load:
             print_log("loading sequence {} ...".format(seq_name), log=log, same_line=True, to_begin=True)
-            preprocessor = process_func(data_root, seq_name, parser, log, self.split, self.phase)
+            preprocessor = process_cls(data_root, seq_name, parser, log, self.split, self.phase)
             if self.dataset == "steersim":
                 num_seq_samples = 1
             else:
@@ -57,7 +75,7 @@ class data_generator(object):
             self.num_total_samples += num_seq_samples
             self.num_sample_list.append(num_seq_samples)
             self.sequence.append(preprocessor)
-        
+
         self.sample_list = list(range(self.num_total_samples))
         self.index = 0
         print_log(f'total num samples: {self.num_total_samples}', log)
@@ -65,7 +83,7 @@ class data_generator(object):
 
     def shuffle(self):
         random.shuffle(self.sample_list)
-        
+
     def get_seq_and_frame(self, index):
         index_tmp = copy.copy(index)
         for seq_index in range(len(self.num_sample_list)):    # 0-indexed
@@ -92,9 +110,9 @@ class data_generator(object):
         seq_index, frame = self.get_seq_and_frame(sample_index)
         seq = self.sequence[seq_index]
         self.index += 1
-        
+
         data = seq(frame)
-        return data      
+        return data
 
     def __call__(self):
         return self.next_sample()
