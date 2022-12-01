@@ -104,10 +104,6 @@ if __name__ == '__main__':
     print_log('\n\nnumber of sequences to evaluate is %d' % len(seq_eval), log_file)
     for seq_name in seq_eval:
         # load GT raw data
-        parser = MockedParesr(dataset=dataset, past_frames=18, future_frames=12, traj_scale=2)
-        preprocessor = process_func(data_root, seq_name, parser, None, 'val', 'testing')
-        gt_data = preprocessor.gt
-        del preprocessor
         gt_data, _ = load_txt_file(os.path.join(gt_dir, seq_name+'.txt'))
         gt_raw = []
         for line_data in gt_data:
