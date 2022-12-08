@@ -49,7 +49,7 @@ class data_generator(object):
 
         elif parser.dataset == "steersim":
             data_root = parser.data_root_steersim
-            seq_train, seq_val, seq_test = _fn_get_data_splits["get_steersim_split"].__call__(parser.dataset)
+            seq_train, seq_val, seq_test = _fn_get_data_splits["get_steersim_split"].__call__(parser)
             process_cls = _cls_preprocess["steersimProcess"]
         else:
             raise ValueError('Unknown dataset!')

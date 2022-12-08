@@ -4,23 +4,7 @@ import numpy as np
 from unittest.mock import patch
 from numpy.testing import assert_allclose
 from data.steersim import steersimProcess
-
-
-class MockConfig(object):
-    def __init__(self, dataset, past_frames, future_frames, min_past_frames, min_future_frames):
-        self.dataset = dataset
-        self.past_frames = past_frames
-        self.future_frames = future_frames
-        self.min_past_frames = min_past_frames
-        self.min_future_frames = min_future_frames
-
-        self.traj_scale = 2
-
-    def set(self, key, value):
-        setattr(self, key, value)
-
-    def get(self, key, default):
-        return getattr(self, key, default)
+from utils.pyconfig import PyConfig
 
 
 def agent_traj_processed(frame, agentId, xpos, zpos):
@@ -39,9 +23,13 @@ def agent_traj_processed(frame, agentId, xpos, zpos):
 class TestPreprocessor(unittest.TestCase):
     maxDiff = None
 
+    def test_ss_requirement(self):
+        config = PyConfig("steersim", 1, 1, 1, 1)
+        self.assertRaises(AssertionError, steersimProcess, "", "", config, None)
+
     @patch.dict(os.environ, {"SteersimRecordPath": "/tmp"})
     def test_preprocessor_one_frame(self):
-        config = MockConfig("steersim", 1, 1, 1, 1)
+        config = PyConfig("steersim", 1, 1, 1, 1)
 
         def _np_gen(*args, **kwargs):
             data = []
@@ -67,7 +55,7 @@ class TestPreprocessor(unittest.TestCase):
 
     @patch.dict(os.environ, {"SteersimRecordPath": "/tmp"})
     def test_preprocessor_two_frames(self):
-        config = MockConfig("steersim", 2, 2, 1, 1)
+        config = PyConfig("steersim", 2, 2, 1, 1)
 
         def _np_gen(*args, **kwargs):
             data = []
@@ -97,7 +85,7 @@ class TestPreprocessor(unittest.TestCase):
 
     @patch.dict(os.environ, {"SteersimRecordPath": "/tmp"})
     def test_preprocessor_skip_frames(self):
-        config = MockConfig("steersim", 2, 2, 1, 1)
+        config = PyConfig("steersim", 2, 2, 1, 1)
         config.set("frame_skip", 2)
 
         def _np_gen(*args, **kwargs):
@@ -105,7 +93,7 @@ class TestPreprocessor(unittest.TestCase):
             for i in range(8):
                 data.append(agent_traj_processed(i, 0, 0, 0))
             data = np.stack(data, axis=0)
-            return data, np.zeros((8, ))
+            return data, np.zeros((8,))
 
         seq = steersimProcess("", "", config, None, _fn_read_traj_binary=_np_gen)
         self.assertEqual(seq.TotalFrame(), 8)

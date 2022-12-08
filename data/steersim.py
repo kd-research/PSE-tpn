@@ -9,19 +9,20 @@ from .preprocessor import preprocess
 logger = logging.Logger(__name__)
 
 
-def get_steersim_split(_):
+def get_steersim_split(parser):
     split = [f"steersim{i:02}" for i in range(1, 50)], \
            [f"steersim{i:02}" for i in range(201, 211)], \
            [f"steersim{i:02}" for i in range(221, 231)]
 
     split = [], [], []
 
-    if os.getenv("SteersimRecordPath"):
-        trainGlob = glob.glob(os.getenv("SteersimRecordPath")+"/*.bin")
+    ssRecordPath = parser.get("ss_record_path", os.environ["SteersimRecordPath"])
+    if ssRecordPath:
+        trainGlob = glob.glob(ssRecordPath+"/*.bin")
         train_seq_name = [os.path.basename(x)[:-4] for x in trainGlob]
-        cvGlob = glob.glob(os.getenv("SteersimRecordPath")+"/test/*.bin")
+        cvGlob = glob.glob(ssRecordPath+"/test/*.bin")
         cv_seq_name = [os.path.basename(x)[:-4] for x in cvGlob]
-        tstGlob = glob.glob(os.getenv("SteersimRecordPath")+"/test1/*.bin")
+        tstGlob = glob.glob(ssRecordPath+"/test1/*.bin")
         tst_seq_name = [os.path.basename(x)[:-4] for x in tstGlob]
         split[0].extend(train_seq_name)
         split[1].extend(cv_seq_name)
@@ -56,15 +57,17 @@ class steersimProcess(preprocess):
         self.split = split
         self.phase = phase
         self.log = log
+        self.ssRecordPath = parser.get("ss_record_path", os.getenv("SteersimRecordPath"))
+        assert self.ssRecordPath
 
         if parser.dataset == 'steersim':
             label_path = f'{data_root}/{seq_name}.bin'
             if not os.path.exists(label_path):
-                label_path = f'{os.environ["SteersimRecordPath"]}/{seq_name}.bin'
+                label_path = f'{self.ssRecordPath}/{seq_name}.bin'
             if not os.path.exists(label_path):
-                label_path = f'{os.environ["SteersimRecordPath"]}/test/{seq_name}.bin'
+                label_path = f'{self.ssRecordPath}/test/{seq_name}.bin'
             if not os.path.exists(label_path):
-                label_path = f'{os.environ["SteersimRecordPath"]}/test1/{seq_name}.bin'
+                label_path = f'{self.ssRecordPath}/test1/{seq_name}.bin'
             assert os.path.exists(label_path) or _fn_read_traj_binary is not None
         else:
             assert False, 'error'
