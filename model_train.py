@@ -101,7 +101,7 @@ if __name__ == '__main__':
     if model_id == "envpred":
         optimizer = optim.Adam(model.parameters(), lr=cfg.lr, weight_decay=0.1)
     else:
-        optimizer = optim.Adam(model.parameters(), lr=0.001)
+        optimizer = optim.Adam(model.parameters(), lr=cfg.lr)
     scheduler_type = cfg.get('lr_scheduler', 'linear')
     if scheduler_type == 'linear':
         scheduler = get_scheduler(optimizer, policy='lambda', nepoch_fix=cfg.lr_fix_epochs, nepoch=cfg.num_epochs)
