@@ -16,17 +16,19 @@ def get_steersim_split(parser):
 
     split = [], [], []
 
-    ssRecordPath = parser.get("ss_record_path", os.environ["SteersimRecordPath"])
-    if ssRecordPath:
-        trainGlob = glob.glob(ssRecordPath+"/*.bin")
-        train_seq_name = [os.path.basename(x)[:-4] for x in trainGlob]
-        cvGlob = glob.glob(ssRecordPath+"/test/*.bin")
-        cv_seq_name = [os.path.basename(x)[:-4] for x in cvGlob]
-        tstGlob = glob.glob(ssRecordPath+"/test1/*.bin")
-        tst_seq_name = [os.path.basename(x)[:-4] for x in tstGlob]
-        split[0].extend(train_seq_name)
-        split[1].extend(cv_seq_name)
-        split[2].extend(tst_seq_name)
+    ssRecordPath = parser.get("ss_record_path", os.getenv("SteersimRecordPath"))
+    assert ssRecordPath
+
+    trainGlob = glob.glob(ssRecordPath+"/*.bin")
+    train_seq_name = [os.path.basename(x)[:-4] for x in trainGlob]
+    cvGlob = glob.glob(ssRecordPath+"/test/*.bin")
+    cv_seq_name = [os.path.basename(x)[:-4] for x in cvGlob]
+    tstGlob = glob.glob(ssRecordPath+"/test1/*.bin")
+    tst_seq_name = [os.path.basename(x)[:-4] for x in tstGlob]
+    split[0].extend(train_seq_name)
+    split[1].extend(cv_seq_name)
+    split[2].extend(tst_seq_name)
+
     return split
 
 
