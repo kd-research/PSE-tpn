@@ -14,9 +14,9 @@ chart = open("seqlist.txt", 'w')
 
 while not data.is_epoch_end():
     d = data()
-    env_list = map(int, ((d['env_parameter']+1)/2).tolist())
+    env_list = d['env_parameter']
     env_list = map(str, env_list)
-    estr = "".join(env_list)
+    estr = ",".join(env_list)
     chart.write(f"{d['seq']}, {estr}\n")
 
 chart.close()

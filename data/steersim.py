@@ -1,5 +1,6 @@
 import logging
 import os.path
+import random
 from pathlib import Path
 import glob
 import numpy as np
@@ -11,19 +12,20 @@ logger = logging.Logger(__name__)
 
 def get_steersim_split(parser):
     split = [f"steersim{i:02}" for i in range(1, 50)], \
-           [f"steersim{i:02}" for i in range(201, 211)], \
-           [f"steersim{i:02}" for i in range(221, 231)]
+        [f"steersim{i:02}" for i in range(201, 211)], \
+        [f"steersim{i:02}" for i in range(221, 231)]
 
     split = [], [], []
 
     ssRecordPath = parser.get("ss_record_path", os.getenv("SteersimRecordPath"))
+    print(f"Steersim.py: getting data from {ssRecordPath}")
     assert ssRecordPath
 
-    trainGlob = glob.glob(ssRecordPath+"/*.bin")
+    trainGlob = glob.glob(ssRecordPath + "/*.bin")
     train_seq_name = [os.path.basename(x)[:-4] for x in trainGlob]
-    cvGlob = glob.glob(ssRecordPath+"/test/*.bin")
+    cvGlob = glob.glob(ssRecordPath + "/test/*.bin")
     cv_seq_name = [os.path.basename(x)[:-4] for x in cvGlob]
-    tstGlob = glob.glob(ssRecordPath+"/test1/*.bin")
+    tstGlob = glob.glob(ssRecordPath + "/test1/*.bin")
     tst_seq_name = [os.path.basename(x)[:-4] for x in tstGlob]
     split[0].extend(train_seq_name)
     split[1].extend(cv_seq_name)
@@ -37,7 +39,7 @@ class steersimProcess(preprocess):
                  data_root,
                  seq_name,
                  parser,
-                 log, # Unused
+                 log,  # Unused
                  split='train',
                  phase='training',
                  *,
@@ -121,7 +123,7 @@ class steersimProcess(preprocess):
 
             gt_matrix = []
             for agentId, agent_matrix in enumerate(agent_array):
-                agent_matrix = agent_matrix[:playspeed*50:playspeed, :]
+                agent_matrix = agent_matrix[:playspeed * 50:playspeed, :]
                 frame_length = agent_matrix.shape[0]
                 gt_extend = np.full([frame_length, 17], -1, dtype=np.float32)
                 gt_extend[:, 0] = np.arange(frame_length)  # frame_num
@@ -135,8 +137,49 @@ class steersimProcess(preprocess):
 
     env1_rect = {"xmin": -70, "xmax": 70, "ymin": -100, "ymax": 100}
 
-    def __call__(self, *args, **kwargs):
-        data = super(steersimProcess, self).__call__(*args, **kwargs)
-        data["env_parameter"] = self.parm
-        return data
+    def get_min_total_frame(self):
+        agent_ids = set(self.gt[:, 1])
+        frame_by_id = []
+        for aid in agent_ids:
+            agent_frame = self.gt[self.gt[:, 1] == aid]
+            frame_by_id.append(np.max(agent_frame) + 1)
 
+        return int(min(frame_by_id))
+
+    def __call__(self, frame, *args, **kwargs):
+        # Steersim.call(8) have past_frame [1..8] and future frame (9...)
+        min_total_frame = self.get_min_total_frame()
+        min_split = max(self.min_past_frames - 1,
+                        min_total_frame - self.future_frames - 1)  # Must include entire future frames
+        max_split = min(self.past_frames - 1,
+                        min_total_frame - self.min_future_frames - 1)  # Must include entire past frames
+        assert min_split <= max_split
+        if min_split > max_split:  # may happens if min_past + min_future > min_total
+            print(f"warning: Dataset not fulfill require, mf={min_total_frame} s={self.TotalFrame()} ms={[min_split, max_split]}")
+            max_split = min_split
+        candidate_split = range(min_split, max_split + 1)
+
+        split_1 = random.choice(candidate_split)
+        split_2 = random.choice(candidate_split)
+        frame = int((split_1 + split_2) / 2)
+
+        assert frame - self.init_frame >= 0 and frame - self.init_frame <= self.TotalFrame() - 1, 'frame is %d, total is %d' % (
+            frame, self.TotalFrame())
+
+        pre_data = self.PreData(frame)
+        fut_data = self.FutureData(frame)
+        valid_id = self.get_valid_id(pre_data, fut_data)
+        assert len(valid_id) == 2, f"Some trajectory was rejected by valid_id{valid_id}"
+
+        pred_mask = None
+        heading = None
+
+        pre_motion_3D, pre_motion_mask = self.PreMotion(pre_data, valid_id)
+        fut_motion_3D, fut_motion_mask = self.FutureMotion(fut_data, valid_id)
+
+        data = {'pre_motion_3D': pre_motion_3D, 'fut_motion_3D': fut_motion_3D, 'fut_motion_mask': fut_motion_mask,
+                'pre_motion_mask': pre_motion_mask, 'pre_data': pre_data, 'fut_data': fut_data, 'heading': heading,
+                'valid_id': valid_id, 'traj_scale': self.traj_scale, 'pred_mask': pred_mask,
+                'scene_map': self.geom_scene_map, 'seq': self.seq_name, 'frame': frame, "env_parameter": self.parm}
+
+        return data

@@ -10,15 +10,15 @@ data_root_steersim           : datasets/steersim
 
 # ------------------- Feature Extractor -------------------------
 
-past_frames                  : 8
-future_frames                : 12
-min_past_frames              : 1
-min_future_frames            : 1
+past_frames                  : 14
+future_frames                : 13
+min_past_frames              : 8
+min_future_frames            : 4
 
 traj_scale                   : 2
 motion_dim                   : 2
 forecast_dim                 : 2
-play_speed                   : 6
+play_speed                   : 1
 
 # ------------------- Model -------------------------
 
@@ -28,8 +28,8 @@ tf_model_dim: 8
 tf_ff_dim: 64
 tf_nhead: 8
 tf_dropout: 0.1
-input_type: ['scene_norm']
-pred_type: 'scene_norm'
+input_type: ['pos']
+pred_type: 'pos'
 sn_out_type: 'norm'
 max_train_agent: 32
 pos_concat: true

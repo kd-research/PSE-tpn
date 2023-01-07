@@ -69,7 +69,7 @@ if __name__ == '__main__':
     PROCESS_POOL = multiprocessing.Pool()  # use all available cores, otherwise specify the number you want as an argument
     dotenv.load_dotenv()
     parser = argparse.ArgumentParser()
-    parser.add_argument('--cfg', default='steersim_env')
+    parser.add_argument('--cfg', default='steersim_pre')
     parser.add_argument('--data_eval', default='test')
     parser.add_argument('--epochs', default=None)
     parser.add_argument('--gpu', type=int, default=0)
