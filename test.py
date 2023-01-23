@@ -13,6 +13,7 @@ from model.model_lib import model_dict
 from utils.utils import prepare_seed, print_log, mkdir_if_missing
 
 
+PYTHON_EXEC = 'python3'
 def get_model_prediction(data, sample_k):
     model.set_data(data)
     recon_motion_3D, _ = model.inference(mode='recon', sample_num=sample_k)
@@ -140,7 +141,7 @@ if __name__ == '__main__':
                 test_model(generator, save_dir, cfg)
 
             log_file = os.path.join(cfg.log_dir, 'log_eval.txt')
-            cmd = f"/opt/conda/envs/torch/bin/python3 eval.py --dataset {cfg.dataset} --results_dir {eval_dir} --data {split} --log {log_file}"
+            cmd = f"{PYTHON_EXEC} eval.py --dataset {cfg.dataset} --results_dir {eval_dir} --data {split} --log {log_file}"
             subprocess.run(cmd.split(' '))
 
             # remove eval folder to save disk space
