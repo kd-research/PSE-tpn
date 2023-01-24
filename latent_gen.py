@@ -49,7 +49,13 @@ def test_model(generator, save_dir, cfg, random_latent):
         except KeyError:
             pass
 
-        pickle_obj.append((seq_name, env_param, context_v, z))
+        pickle_obj.append({
+            "seq_name": seq_name,
+            "env_param": env_param.tolist(),
+            "context_v": context_v.tolist(),
+            "z": z.tolist()
+        })
+
 
     while not generator.is_epoch_end():
         data = generator()
@@ -57,10 +63,12 @@ def test_model(generator, save_dir, cfg, random_latent):
             continue
         test_once(data)
 
-    import pickle
-    with open(f"{args.data_eval}.pkl", "wb") as f:
+    import json
+    with open(f"{cfg.latent_dir}/{args.data_eval}.json", "w") as f:
         print(f"Serialized {len(pickle_obj)} data")
-        pickle.dump(pickle_obj, f)
+        for d in pickle_obj:
+            f.write(json.dumps(d))
+            f.write("\n")
 
 
 import dotenv

@@ -10,7 +10,6 @@ from .utils import recreate_dirs
 class Config:
 
     def __init__(self, cfg_id, tmp=False, create_dirs=False):
-        self.id = cfg_id
         cfg_path = 'cfg/**/%s.yml' % cfg_id
         files = glob.glob(cfg_path, recursive=True)
         if len(files) != 1:
@@ -18,6 +17,7 @@ class Config:
         assert(len(files) == 1)
         self.yml_dict = EasyDict(yaml.safe_load(open(files[0], 'r')))
 
+        self.id = cfg_id = self.yml_dict.get("as", cfg_id)
         # data dir
         self.results_root_dir = os.path.expanduser(self.yml_dict['results_root_dir'])
         # results dirs
@@ -29,10 +29,12 @@ class Config:
         self.result_dir = '%s/results' % self.cfg_dir
         self.log_dir = '%s/log' % self.cfg_dir
         self.tb_dir = '%s/tb' % self.cfg_dir
+        self.latent_dir = '%s/latents' % self.cfg_dir
         self.model_path = os.path.join(self.model_dir, 'model_%04d.p')
         os.makedirs(self.model_dir, exist_ok=True)
         os.makedirs(self.result_dir, exist_ok=True)
         os.makedirs(self.log_dir, exist_ok=True)
+        os.makedirs(self.latent_dir, exist_ok=True)
         if create_dirs:
             recreate_dirs(self.tb_dir)
 

@@ -9,6 +9,21 @@ from .preprocessor import preprocess
 
 logger = logging.Logger(__name__)
 
+STEERSIM_BINARIES = {}
+
+def get_base_path(full):
+    base = Path(full).stem
+    STEERSIM_BINARIES[base] = full
+    return base
+
+def get_full_path(base):
+    return STEERSIM_BINARIES.get(base)
+
+def steersim_config_spec_split(config):
+    train_list = [get_base_path(file) for file in config['train_source']]
+    valid_list = [get_base_path(file) for file in config['valid_source']]
+    test_list = [get_base_path(file) for file in config['test_source']]
+    return train_list, valid_list, test_list
 
 def get_steersim_split(parser):
     split = [f"steersim{i:02}" for i in range(1, 50)], \
@@ -17,6 +32,12 @@ def get_steersim_split(parser):
 
     split = [], [], []
 
+    # Priority 1: get steersim binaries from config file
+    config_embed_source = parser.get('steersim_data_source')
+    if config_embed_source:
+        return steersim_config_spec_split(config_embed_source)
+
+    # Priority 2: collect binaries from give record path
     ssRecordPath = parser.get("ss_record_path", os.getenv("SteersimRecordPath"))
     print(f"Steersim.py: getting data from {ssRecordPath}")
     assert ssRecordPath
@@ -61,11 +82,16 @@ class steersimProcess(preprocess):
         self.split = split
         self.phase = phase
         self.log = log
-        self.ssRecordPath = parser.get("ss_record_path", os.getenv("SteersimRecordPath"))
-        assert self.ssRecordPath
 
         if parser.dataset == 'steersim':
-            label_path = f'{data_root}/{seq_name}.bin'
+            # Priority 1: find binary from config
+            label_path = get_full_path(seq_name)
+
+            # Priority 2: find binary in all possible directory
+            if not os.path.exists(label_path):
+                self.ssRecordPath = parser.get("ss_record_path", os.getenv("SteersimRecordPath"))
+                assert self.ssRecordPath
+                label_path = f'{data_root}/{seq_name}.bin'
             if not os.path.exists(label_path):
                 label_path = f'{self.ssRecordPath}/{seq_name}.bin'
             if not os.path.exists(label_path):

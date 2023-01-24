@@ -17,10 +17,13 @@ min_future_frames            : 12
 traj_scale                   : 2
 motion_dim                   : 2
 forecast_dim                 : 2
+frame_skip: 1
+load_map: false
 
 # ------------------- Model -------------------------
 
 model_id: agentformer
+as: agentformer
 tf_version: v2
 tf_model_dim: 256
 tf_ff_dim: 512
