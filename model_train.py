@@ -71,6 +71,7 @@ if __name__ == '__main__':
     dotenv.load_dotenv()
     parser = argparse.ArgumentParser()
     parser.add_argument('--cfg', default=None)
+    parser.add_argument('--auto_load', action='store_true', default=False)
     parser.add_argument('--start_epoch', type=int, default=0)
     parser.add_argument('--tmp', action='store_true', default=False)
     parser.add_argument('--gpu', type=int, default=0)
@@ -111,6 +112,11 @@ if __name__ == '__main__':
         raise ValueError('unknown scheduler type!')
 
     model.set_device(device)
+    if args.auto_load:
+        epoch = cfg.get_last_epoch()
+        if epoch:
+            args.start_epoch = epoch
+
     if args.start_epoch > 0:
         cp_path = cfg.model_path % args.start_epoch
         print_log(f'loading model from checkpoint: {cp_path}', log)
