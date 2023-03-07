@@ -74,7 +74,6 @@ def test_model(generator, save_dir, cfg, random_latent):
 import dotenv
 
 if __name__ == '__main__':
-    PROCESS_POOL = multiprocessing.Pool()  # use all available cores, otherwise specify the number you want as an argument
     dotenv.load_dotenv()
     parser = argparse.ArgumentParser()
     parser.add_argument('--cfg', default='steersim_pre')
