@@ -118,6 +118,7 @@ if __name__ == '__main__':
             args.start_epoch = epoch
 
     if args.start_epoch > 0:
+        cfg.num_epochs += args.start_epoch
         cp_path = cfg.model_path % args.start_epoch
         print_log(f'loading model from checkpoint: {cp_path}', log)
         model_cp = torch.load(cp_path, map_location=device)

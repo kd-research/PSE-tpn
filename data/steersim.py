@@ -179,7 +179,7 @@ class steersimProcess(preprocess):
                         min_total_frame - self.future_frames - 1)  # Must include entire future frames
         max_split = min(self.past_frames - 1,
                         min_total_frame - self.min_future_frames - 1)  # Must include entire past frames
-        assert min_split <= max_split
+        assert min_split <= max_split, f'can not split a sequence with frame size {min_total_frame}'
         if min_split > max_split:  # may happens if min_past + min_future > min_total
             print(f"warning: Dataset not fulfill require, mf={min_total_frame} s={self.TotalFrame()} ms={[min_split, max_split]}")
             max_split = min_split
