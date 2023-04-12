@@ -195,7 +195,7 @@ class steersimProcess(preprocess):
         pre_data = self.PreData(frame)
         fut_data = self.FutureData(frame)
         valid_id = self.get_valid_id(pre_data, fut_data)
-        assert len(valid_id) == 2, f"Some trajectory was rejected by valid_id{valid_id}"
+        assert len(valid_id) >= 2, f"Some trajectory was rejected by valid_id{valid_id}"
 
         pred_mask = None
         heading = None
