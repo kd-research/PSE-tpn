@@ -53,7 +53,8 @@ def test_model(generator, save_dir, cfg, random_latent):
             "seq_name": seq_name,
             "env_param": env_param.tolist(),
             "context_v": context_v.tolist(),
-            "z": z.tolist()
+            "z": z.tolist(),
+            "frame": frame,
         })
 
 

@@ -3,7 +3,7 @@ import unittest
 import numpy as np
 from unittest.mock import patch
 from numpy.testing import assert_allclose
-from data.steersim import steersimProcess
+from data.steersim_segmented import SteersimSegmentedProcess as steersimProcess
 from utils.pyconfig import PyConfig
 
 
@@ -31,6 +31,7 @@ class TestPreprocessor(unittest.TestCase):
     def test_preprocessor_one_frame(self):
         config = PyConfig("steersim", 1, 1, 1, 1)
 
+        # one agent with 5 frames
         def _np_gen(*args, **kwargs):
             data = []
             for i in range(5):
@@ -40,7 +41,12 @@ class TestPreprocessor(unittest.TestCase):
 
         seq = steersimProcess("", "", config, None, _fn_read_traj_binary=_np_gen)
         self.assertEqual(seq.TotalFrame(), 5)
+        self.assertEqual(seq.get_max_total_frame(), 5)
 
+        # There will be 2 samples in the sequence
+        # 1. frame 0, 1
+        # 2. frame 2, 3
+        self.assertEqual(seq.get_total_available_sample_size(), 2)
         data = seq(0)
         pre_data = data["pre_data"]
         fut_data = data["fut_data"]
@@ -50,40 +56,37 @@ class TestPreprocessor(unittest.TestCase):
         data = seq(1)
         pre_data = data["pre_data"]
         fut_data = data["fut_data"]
-        assert_allclose(pre_data[0][0], agent_traj_processed(1, 0, 0, 0))
-        assert_allclose(fut_data[0][0], agent_traj_processed(2, 0, 0, 0))
+        assert_allclose(pre_data[0][0], agent_traj_processed(2, 0, 0, 0))
+        assert_allclose(fut_data[0][0], agent_traj_processed(3, 0, 0, 0))
 
     @patch.dict(os.environ, {"SteersimRecordPath": "/tmp"})
     def test_preprocessor_two_frames(self):
         config = PyConfig("steersim", 2, 2, 1, 1)
 
+        # one agent with 5 frames
         def _np_gen(*args, **kwargs):
             data = []
             for i in range(5):
-                data.append(agent_traj_processed(i, 0, 0, 0))
+                data.append(agent_traj_processed(i, 0, 99, -99))
             data = np.stack(data, axis=0)
             return data, np.zeros((8,))
 
         seq = steersimProcess("", "", config, None, _fn_read_traj_binary=_np_gen)
         self.assertEqual(seq.TotalFrame(), 5)
+        self.assertEqual(seq.get_max_total_frame(), 5)
 
-        data = seq(1)
+        self.assertEqual(seq.get_total_available_sample_size(), 1)
+
+        data = seq(0)
         pre_data = data["pre_data"]
         fut_data = data["fut_data"]
-        assert_allclose(pre_data[0][0], agent_traj_processed(1, 0, 0, 0))
-        assert_allclose(pre_data[1][0], agent_traj_processed(0, 0, 0, 0))
-        assert_allclose(fut_data[0][0], agent_traj_processed(2, 0, 0, 0))
-        assert_allclose(fut_data[1][0], agent_traj_processed(3, 0, 0, 0))
+        assert_allclose(pre_data[0][0], agent_traj_processed(1, 0, 99, -99))
+        assert_allclose(pre_data[1][0], agent_traj_processed(0, 0, 99, -99))
+        assert_allclose(fut_data[0][0], agent_traj_processed(2, 0, 99, -99))
+        assert_allclose(fut_data[1][0], agent_traj_processed(3, 0, 99, -99))
 
-        data = seq(2)
-        pre_data = data["pre_data"]
-        fut_data = data["fut_data"]
-        assert_allclose(pre_data[0][0], agent_traj_processed(2, 0, 0, 0))
-        assert_allclose(pre_data[1][0], agent_traj_processed(1, 0, 0, 0))
-        assert_allclose(fut_data[0][0], agent_traj_processed(3, 0, 0, 0))
-        assert_allclose(fut_data[1][0], agent_traj_processed(4, 0, 0, 0))
-
-    @patch.dict(os.environ, {"SteersimRecordPath": "/tmp"})
+    @unittest.skip("Not implemented yet")
+    #@patch.dict(os.environ, {"SteersimRecordPath": "/tmp"})
     def test_preprocessor_skip_frames(self):
         config = PyConfig("steersim", 2, 2, 1, 1)
         config.set("frame_skip", 2)

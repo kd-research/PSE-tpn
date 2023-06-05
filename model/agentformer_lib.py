@@ -174,6 +174,8 @@ def agent_aware_attention(query: Tensor,
                 k_self = linear(key, _w, _b)
 
         else:
+            print(f"equality check failed: {torch.equal(query, key)} {torch.equal(key, value)}")
+            print(f"check nan: {torch.isnan(query).any()} {torch.isnan(key).any()} {torch.isnan(value).any()}")
             raise NotImplementedError
 
     else:

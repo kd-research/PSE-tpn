@@ -6,6 +6,7 @@ from .ethucy_split import get_ethucy_split
 from .nuscenes_pred_split import get_nuscenes_pred_split
 from .preprocessor import preprocess
 from .steersim import get_steersim_split, steersimProcess
+from .steersim_segmented import SteersimSegmentedProcess
 
 
 class data_generator(object):
@@ -17,7 +18,8 @@ class data_generator(object):
 
     _impl_preprocess = {
         "preprocess": preprocess,
-        "steersimProcess": steersimProcess
+        "steersimProcess": steersimProcess,
+        "steersimSegmented": SteersimSegmentedProcess
     }
 
     def __init__(self, parser, log, split='train', phase='training', *,
@@ -46,11 +48,14 @@ class data_generator(object):
             seq_train, seq_val, seq_test = _fn_get_data_splits["get_ethucy_split"].__call__(parser.dataset)
             self.init_frame = 0
             process_cls = _cls_preprocess["preprocess"]
-
         elif parser.dataset == "steersim":
             data_root = parser.data_root_steersim
             seq_train, seq_val, seq_test = _fn_get_data_splits["get_steersim_split"].__call__(parser)
             process_cls = _cls_preprocess["steersimProcess"]
+        elif parser.dataset == "steersim-segmented":
+            data_root = parser.data_root_steersim
+            seq_train, seq_val, seq_test = _fn_get_data_splits["get_steersim_split"].__call__(parser)
+            process_cls = _cls_preprocess["steersimSegmented"]
         else:
             raise ValueError('Unknown dataset!')
 
@@ -68,17 +73,17 @@ class data_generator(object):
         for seq_name in self.sequence_to_load:
             print_log("loading sequence {} ...".format(seq_name), log=log, same_line=True, to_begin=True)
             preprocessor = process_cls(data_root, seq_name, parser, log, self.split, self.phase)
-            if self.dataset == "steersim":
-                num_seq_samples = 1
+            if self.dataset.startswith("steersim"):
+                num_seq_samples = preprocessor.get_total_available_sample_size()
             else:
                 num_seq_samples = preprocessor.num_fr - (parser.min_past_frames + parser.min_future_frames - 1) * self.frame_skip
             self.num_total_samples += num_seq_samples
             self.num_sample_list.append(num_seq_samples)
             self.sequence.append(preprocessor)
 
+        print_log(f'total num samples: {self.num_total_samples}', log)
         self.sample_list = list(range(self.num_total_samples))
         self.index = 0
-        print_log(f'total num samples: {self.num_total_samples}', log)
         print_log("------------------------------ done --------------------------------\n", log=log)
 
     def shuffle(self):
@@ -88,10 +93,10 @@ class data_generator(object):
         index_tmp = copy.copy(index)
         for seq_index in range(len(self.num_sample_list)):    # 0-indexed
             if index_tmp < self.num_sample_list[seq_index]:
+                if self.dataset.startswith("steersim"):
+                    return seq_index, index_tmp
                 frame_index = index_tmp + (self.min_past_frames - 1) * self.frame_skip
                 frame_index += self.sequence[seq_index].init_frame     # from 0-indexed list index to 1-indexed frame index (for mot)
-                if self.dataset == "steersim":
-                    frame_index += self.past_frames
                 return seq_index, frame_index
             else:
                 index_tmp -= self.num_sample_list[seq_index]

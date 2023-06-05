@@ -83,12 +83,12 @@ class steersimProcess(preprocess):
         self.phase = phase
         self.log = log
 
-        if parser.dataset == 'steersim':
+        if parser.dataset.startswith('steersim'):
             # Priority 1: find binary from config
             label_path = get_full_path(seq_name)
 
             # Priority 2: find binary in all possible directory
-            if not os.path.exists(label_path):
+            if (label_path is None) or (not os.path.exists(label_path)):
                 self.ssRecordPath = parser.get("ss_record_path", os.getenv("SteersimRecordPath"))
                 assert self.ssRecordPath
                 label_path = f'{data_root}/{seq_name}.bin'
@@ -149,7 +149,7 @@ class steersimProcess(preprocess):
 
             gt_matrix = []
             for agentId, agent_matrix in enumerate(agent_array):
-                agent_matrix = agent_matrix[:playspeed * 50:playspeed, :]
+                agent_matrix = agent_matrix[::playspeed, :]
                 frame_length = agent_matrix.shape[0]
                 gt_extend = np.full([frame_length, 17], -1, dtype=np.float32)
                 gt_extend[:, 0] = np.arange(frame_length)  # frame_num
@@ -163,16 +163,19 @@ class steersimProcess(preprocess):
 
     env1_rect = {"xmin": -70, "xmax": 70, "ymin": -100, "ymax": 100}
 
+    def get_total_available_sample_size(self):
+        return 1
+
     def get_min_total_frame(self):
         agent_ids = set(self.gt[:, 1])
         frame_by_id = []
         for aid in agent_ids:
             agent_frame = self.gt[self.gt[:, 1] == aid]
-            frame_by_id.append(np.max(agent_frame) + 1)
+            frame_by_id.append(np.max(agent_frame[:, 0]) + 1)
 
         return int(min(frame_by_id))
 
-    def __call__(self, frame, *args, **kwargs):
+    def __call__(self, _, *args, **kwargs):
         # Steersim.call(8) have past_frame [1..8] and future frame (9...)
         min_total_frame = self.get_min_total_frame()
         min_split = max(self.min_past_frames - 1,
