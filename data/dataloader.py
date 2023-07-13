@@ -7,6 +7,7 @@ from .nuscenes_pred_split import get_nuscenes_pred_split
 from .preprocessor import preprocess
 from .steersim import get_steersim_split, steersimProcess
 from .steersim_segmented import SteersimSegmentedProcess
+from .steersim_evac import SteersimEvacProcess
 
 
 class data_generator(object):
@@ -19,7 +20,8 @@ class data_generator(object):
     _impl_preprocess = {
         "preprocess": preprocess,
         "steersimProcess": steersimProcess,
-        "steersimSegmented": SteersimSegmentedProcess
+        "steersimSegmented": SteersimSegmentedProcess,
+        "steersimEvac": SteersimEvacProcess
     }
 
     def __init__(self, parser, log, split='train', phase='training', *,
@@ -56,6 +58,10 @@ class data_generator(object):
             data_root = parser.data_root_steersim
             seq_train, seq_val, seq_test = _fn_get_data_splits["get_steersim_split"].__call__(parser)
             process_cls = _cls_preprocess["steersimSegmented"]
+        elif parser.dataset == "steersim-evac":
+            data_root = parser.data_root_steersim
+            seq_train, seq_val, seq_test = _fn_get_data_splits["get_steersim_split"].__call__(parser)
+            process_cls = _cls_preprocess["steersimEvac"]
         else:
             raise ValueError('Unknown dataset!')
 

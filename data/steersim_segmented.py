@@ -1,10 +1,11 @@
 import math
 import logging
+import numpy
 import numpy as np
+import pandas
 
 from .steersim import steersimProcess
 
-logger = logging.Logger(__name__)
 
 class SteersimSegmentedProcess(steersimProcess):
     def __init__(self, *args, **kwargs):
@@ -13,6 +14,8 @@ class SteersimSegmentedProcess(steersimProcess):
         super().__init__(*args, **kwargs)
         if np.isnan(self.gt).any():
             raise ValueError('gt contains NaN')
+
+        self.segmented = True
 
     def get_total_available_sample_size(self):
         assert self.frame_skip == 1, "frame skip is not considered yet"
@@ -29,6 +32,9 @@ class SteersimSegmentedProcess(steersimProcess):
 
         return full_sample_num
 
+    def num_first_frame(self):
+        return int(min(self.gt[:, 0]))
+
     def get_min_total_frame(self):
         # length of the fastest agent achieves the goal
         agent_ids = set(self.gt[:, 1])
@@ -37,7 +43,7 @@ class SteersimSegmentedProcess(steersimProcess):
             agent_frame = self.gt[self.gt[:, 1] == aid]
             frame_by_id.append(np.max(agent_frame) + 1)
 
-        return int(min(frame_by_id))
+        return int(min(frame_by_id)) - self.num_first_frame()
 
     def get_max_total_frame(self):
         # length of the slowest agent achieves the goal
@@ -47,21 +53,25 @@ class SteersimSegmentedProcess(steersimProcess):
             agent_frame = self.gt[self.gt[:, 1] == aid]
             frame_by_id.append(np.max(agent_frame[:, 0]) + 1)
 
-        return int(max(frame_by_id))
+        return int(max(frame_by_id)) - self.num_first_frame()
 
 
     def __call__(self, sample_index, *args, **kwargs):
         assert self.frame_skip == 1, "frame skip is not considered yet"
 
         # Steersim.call(8) have past_frame [1..8] and future frame (9...)
+        # SteersimSegmented.call(1) will compute the 1st sample instead
 
         target_frame_size = self.past_frames + self.future_frames
-        selected_split_frame_num = sample_index * target_frame_size + self.past_frames - 1
+        selected_split_frame_num = self.num_first_frame() + sample_index * target_frame_size + self.past_frames - 1
 
         pre_data = self.PreData(selected_split_frame_num)
         fut_data = self.FutureData(selected_split_frame_num)
         valid_id = self.get_valid_id(pre_data, fut_data)
         if len(valid_id) == 0:
+            print(self.gt)
+            print(pre_data)
+            print(fut_data)
             assert False, f"Unexpected empty sample: {self.seq_name} {sample_index} {selected_split_frame_num}"
 
         pred_mask = None

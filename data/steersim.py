@@ -11,6 +11,9 @@ logger = logging.Logger(__name__)
 
 STEERSIM_BINARIES = {}
 
+def register_datafile(path):
+    get_base_path(path)
+
 def get_base_path(full):
     base = Path(full).stem
     STEERSIM_BINARIES[base] = full
@@ -83,7 +86,9 @@ class steersimProcess(preprocess):
         self.phase = phase
         self.log = log
 
-        if parser.dataset.startswith('steersim'):
+        if _fn_read_traj_binary:
+            self.gt, self.parm = _fn_read_traj_binary(None, self.play_speed)
+        elif parser.dataset.startswith('steersim'):
             # Priority 1: find binary from config
             label_path = get_full_path(seq_name)
 
@@ -99,15 +104,19 @@ class steersimProcess(preprocess):
             if not os.path.exists(label_path):
                 label_path = f'{self.ssRecordPath}/test1/{seq_name}.bin'
             assert os.path.exists(label_path) or _fn_read_traj_binary is not None
+
+            _fn_read_traj_binary = self.read_trajectory_binary
+            self.gt, self.parm = _fn_read_traj_binary(label_path, self.play_speed)
         else:
             assert False, 'error'
-        if _fn_read_traj_binary is None:
-            _fn_read_traj_binary = self.read_trajectory_binary
-        self.gt, self.parm = _fn_read_traj_binary(label_path, self.play_speed)
+
         frames = self.gt[:, 0].astype(np.float32).astype(np.int32)
         fr_start, fr_end = frames.min(), frames.max()
         self.init_frame = fr_start
         self.num_fr = fr_end + 1 - fr_start
+        self.agent_num = parser.get('agent_num', np.unique(self.gt[:, 1].astype(np.int32)).shape[0])
+        self.parameter_size = self.parm.shape[0]
+        self.segmented = False
 
         if self.load_map:
             self.load_scene_map()
@@ -116,6 +125,9 @@ class steersimProcess(preprocess):
 
         self.xind, self.zind = 13, 15
 
+    def get_agent_num(self):
+        return np.unique(self.gt[:, 1].astype(np.int32)).shape[0]
+
     @staticmethod
     def read_trajectory_binary(filename, playspeed=1):
         """
@@ -123,27 +135,27 @@ class steersimProcess(preprocess):
         :return:
         """
         with open(filename, "rb") as file:
-            logger.debug("Beginning read file: %s", filename)
+            logging.debug("Beginning read file: %s", filename)
             eof = file.seek(0, 2)
             file.seek(0, 0)
 
             obsTypeSize = np.fromfile(file, np.int32, 1)[0]
-            logger.debug("Reading obstacle section, size %d", obsTypeSize)
+            logging.debug("Reading obstacle section, size %d", obsTypeSize)
             _ = np.fromfile(file, dtype=np.int32, count=obsTypeSize)
 
             obsInfoSize = np.fromfile(file, np.int32, 1)[0]
-            logger.debug("Reading obstacle info section, size %d", obsInfoSize)
+            logging.debug("Reading obstacle info section, size %d", obsInfoSize)
             _ = np.fromfile(file, dtype=np.float32, count=obsInfoSize)
 
             parameter_size = np.fromfile(file, np.int32, 1)[0]
-            logger.debug("Reading parameter info section, size %d", parameter_size)
+            logging.debug("Reading parameter info section, size %d", parameter_size)
             parameters = np.fromfile(file, dtype=np.float32, count=parameter_size)
             parameters = parameters * 2 - 1
 
             agent_array = []
             while file.tell() < eof:
                 trajectoryLength = np.fromfile(file, np.int32, 1)[0]
-                logger.debug("Reading agent info for agentId %d, size %d", len(agent_array), trajectoryLength)
+                logging.debug("Reading agent info for agentId %d, size %d", len(agent_array), trajectoryLength)
                 trajectory_matrix = np.fromfile(file, np.float32, trajectoryLength).reshape((-1, 2))
                 agent_array.append(trajectory_matrix)
 

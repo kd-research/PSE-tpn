@@ -64,12 +64,26 @@ def test_model(generator, save_dir, cfg, random_latent):
             continue
         test_once(data)
 
+    # serialize
     import json
     with open(f"{cfg.latent_dir}/{args.data_eval}.json", "w") as f:
         print(f"Serialized {len(pickle_obj)} data")
         for d in pickle_obj:
             f.write(json.dumps(d))
             f.write("\n")
+
+    import yaml
+    with open(f"{cfg.latent_dir}/model.yml", "w") as f:
+        seq = generator.sequence[0]
+        model_dict = {
+            "parameter_size": seq.parameter_size,
+            "nagent": seq.agent_num,
+            "nframe": seq.past_frames,
+            "nhead": cfg.tf_nhead,
+            "segmented": seq.segmented,
+        }
+        model_dict["nelem"] = model_dict["nagent"] * model_dict["nframe"] * model_dict["nhead"]
+        yaml.dump(model_dict, f)
 
 
 import dotenv
