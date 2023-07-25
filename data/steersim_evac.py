@@ -49,8 +49,19 @@ class SteersimEvacProcess(steersimProcess):
             aid = random.choice(list(agent_pool))
             kwargs_copy = copy.copy(kwargs)
             group_agent_indices = sorted(self.agent_grouping.get_group_agent_indices(aid, self.agent_num))
-            if len(group_agent_indices) < self.agent_num:
-                continue
+            trail_count = 0
+            while len(group_agent_indices) < self.agent_num:
+                logging.info('Cannot find enough agents to form a group, try incrementally')
+                trail_count += 1
+                if trail_count > 100:
+                    raise ValueError('Cannot find enough agents to form a group')
+                group_candidate = list(agent_pool & set(group_agent_indices))
+                if len(group_candidate) == 0:
+                    group_candidate = group_agent_indices
+                aid = random.choice(group_candidate)
+                group_agent_indices_more = self.agent_grouping.get_group_agent_indices(aid, self.agent_num)
+                group_agent_indices_more = [i for i in group_agent_indices_more if i not in group_agent_indices]
+                group_agent_indices += group_agent_indices_more[:self.agent_num - len(group_agent_indices)]
 
             agent_pool -= set(group_agent_indices)
 

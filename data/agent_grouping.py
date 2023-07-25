@@ -53,7 +53,7 @@ class AgentGrouping:
 
     def get_group_agent_indices(self, target_idx, num_agent):
         is_inf_ade = numpy.isinf(self.ADEm[target_idx])
-        candidate_index = numpy.argpartition(self.ADEm[target_idx], num_agent)[:num_agent]
+        candidate_index = numpy.argsort(self.ADEm[target_idx])[:num_agent]
         return candidate_index[~is_inf_ade[candidate_index]]
 
 
