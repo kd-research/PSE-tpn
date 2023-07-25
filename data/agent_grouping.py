@@ -52,7 +52,10 @@ class AgentGrouping:
             ADEm[y, x] = ADEm[x, y] = self._compute_ADE(self.d, x, y)
 
     def get_group_agent_indices(self, target_idx, num_agent):
-        return numpy.argpartition(self.ADEm[target_idx], num_agent)[:num_agent]
+        is_inf_ade = numpy.isinf(self.ADEm[target_idx])
+        candidate_index = numpy.argpartition(self.ADEm[target_idx], num_agent)[:num_agent]
+        return candidate_index[~is_inf_ade[candidate_index]]
+
 
     def get_num_agents(self):
         return self.d.aid.max() + 1

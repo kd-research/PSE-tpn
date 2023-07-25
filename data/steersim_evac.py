@@ -44,10 +44,14 @@ class SteersimEvacProcess(steersimProcess):
         total_sample_size = 0
 
         agent_pool = set(range(self.agent_grouping.get_num_agents()))
+
         while len(agent_pool) > 0:
             aid = random.choice(list(agent_pool))
             kwargs_copy = copy.copy(kwargs)
             group_agent_indices = sorted(self.agent_grouping.get_group_agent_indices(aid, self.agent_num))
+            if len(group_agent_indices) < self.agent_num:
+                continue
+
             agent_pool -= set(group_agent_indices)
 
             group_params = np.concatenate(
