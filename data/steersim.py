@@ -107,6 +107,7 @@ class steersimProcess(preprocess):
 
             _fn_read_traj_binary = self.read_trajectory_binary
             self.gt, self.parm = _fn_read_traj_binary(label_path, self.play_speed)
+            self.label_path = label_path  # for debugging & visualization
         else:
             assert False, 'error'
 

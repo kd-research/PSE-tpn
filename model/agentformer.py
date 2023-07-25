@@ -88,6 +88,8 @@ class AgentFormer(nn.Module):
     def set_data(self, data):
         device = self.device
         if self.training and len(data['pre_motion_3D']) > self.max_train_agent:
+            # I don't want to train on an incomplete batch
+            raise ValueError('Training data size is larger than max_train_agent')
             in_data = {}
             ind = np.random.choice(len(data['pre_motion_3D']), self.max_train_agent).tolist()
             for key in ['pre_motion_3D', 'fut_motion_3D', 'fut_motion_mask', 'pre_motion_mask', 'heading']:

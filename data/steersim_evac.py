@@ -5,12 +5,14 @@ import numpy as np
 import copy
 import bisect
 import random
+import subprocess
 
 from .steersim import steersimProcess
 from .steersim_segmented import SteersimSegmentedProcess
 from .agent_grouping import AgentGrouping
 
 logger = logging.Logger(__name__)
+
 
 class SteersimEvacProcess(steersimProcess):
     def __init__(self, *args, **kwargs):
@@ -60,9 +62,30 @@ class SteersimEvacProcess(steersimProcess):
             self.accu_sample_size.append(total_sample_size)
             self.sub_dataset.append(group_dataset)
             total_sample_size += group_dataset.get_total_available_sample_size()
+            logging.info(f"Group {aid} has {len(group_agent_indices)} agents, they are: \n{group_agent_indices}")
+            #self.visulaize_group(aid, group_agent_indices)
 
         self.accu_sample_size.append(total_sample_size)
         self.parameter_size = self.sub_dataset[0].parameter_size
+
+    def visulaize_group(self, aid, group_id):
+        # visualizing using tool /home/kaidong/RubymineProjects/opencvpp/evac.rb
+        # this tool receives four lines of data
+        # 1. the first line is the path of trajectory file
+        # 2. output path
+        # 3. aid
+        # 4. group id
+        try:
+            process = subprocess.Popen(['bash', '-c', 'cd /home/kaidong/RubymineProjects/opencvpp/ && ruby evac.rb'],
+                                       stdin=subprocess.PIPE, text=True)
+            process.stdin.write(f"{self.label_path}\n")
+            process.stdin.write(f"{self.seq_name}_{aid}\n")
+            process.stdin.write(f"{aid}\n")
+            process.stdin.write(f"{group_id}\n")
+            process.stdin.close()
+        except Exception as e:
+            logger.error(e)
+            raise
 
     def get_total_available_sample_size(self):
         return self.accu_sample_size[-1]
@@ -71,11 +94,9 @@ class SteersimEvacProcess(steersimProcess):
         # length of the fastest agent achieves the goal
         raise NotImplementedError
 
-
     def get_max_total_frame(self):
         # length of the slowest agent achieves the goal
         raise NotImplementedError
-
 
     def __call__(self, sample_index, *args, **kwargs):
         assert self.frame_skip == 1, "frame skip is not considered yet"
