@@ -1,6 +1,7 @@
 import logging
 import numpy
 import pandas
+import random
 
 logger = logging.Logger(__name__)
 
@@ -13,7 +14,11 @@ class AgentGrouping:
       AgentGrouping(data.gt).get_group_agent_indices(51, 6)
     """
 
-    def __init__(self, gt):
+    def __init__(self, gt, seq_name=None, param=None, num_agent=6):
+        self.gt = gt
+        self.agent_num = num_agent
+        self.param = param
+        self.seq_name = seq_name
         self._prepare(gt)
 
     @staticmethod
@@ -56,6 +61,44 @@ class AgentGrouping:
         candidate_index = numpy.argsort(self.ADEm[target_idx])[:num_agent]
         return candidate_index[~is_inf_ade[candidate_index]]
 
+    def group_gt_params(self):
+        agent_params_begin = 1
+        agent_params = numpy.array(self.param[agent_params_begin:]).reshape(-1, 5)
+        agent_pool = set(range(self.get_num_agents()))
+
+        all_group_gt = []
+        all_group_params = []
+
+        while len(agent_pool) > 0:
+            aid = random.choice(list(agent_pool))
+            group_agent_indices = sorted(self.get_group_agent_indices(aid, self.agent_num))
+            aid_tried = set()
+            while len(group_agent_indices) < self.agent_num:
+                logging.info('Cannot find enough agents to form a group, try incrementally')
+                group_candidate = list(agent_pool & set(group_agent_indices) - aid_tried)
+                if len(group_candidate) == 0:
+                    group_candidate = set(group_agent_indices) - aid_tried
+                if len(group_candidate) == 0:
+                    logging.error('seq: %s, aid: %d' % (self.seq_name, aid))
+                    logging.error('agent_pool: %s' % agent_pool)
+                    logging.error('formed group: %s' % group_agent_indices)
+                    raise ValueError('Cannot find enough agents to form a group')
+                aid = random.choice(list(group_candidate))
+                aid_tried.add(aid)
+                group_agent_indices_more = self.get_group_agent_indices(aid, self.agent_num)
+                group_agent_indices_more = [i for i in group_agent_indices_more if i not in group_agent_indices]
+                group_agent_indices += group_agent_indices_more[:self.agent_num - len(group_agent_indices)]
+
+            agent_pool -= set(group_agent_indices)
+
+            group_params = numpy.concatenate(
+                (self.param[:agent_params_begin], agent_params[group_agent_indices].flatten()))
+            group_agent_gt = self.gt[numpy.isin(self.gt[:, 1], group_agent_indices)]
+
+            all_group_gt.append(group_agent_gt)
+            all_group_params.append(group_params)
+
+        return all_group_gt, all_group_params
 
     def get_num_agents(self):
         return self.d.aid.max() + 1

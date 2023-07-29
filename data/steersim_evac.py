@@ -35,43 +35,14 @@ class SteersimEvacProcess(steersimProcess):
 
         self.gt = np.take(self.gt, filtered.origin_index, axis=0)
 
-        agent_params_begin = 1
-        agent_params = np.array(self.parm[agent_params_begin:]).reshape(-1, 5)
-        self.agent_grouping = AgentGrouping(self.gt)
+        self.agent_grouping = AgentGrouping(self.gt, seq_name=self.seq_name, param=self.parm, num_agent=self.agent_num)
 
         self.accu_sample_size = []
         self.sub_dataset = []
         total_sample_size = 0
 
-        agent_pool = set(range(self.agent_grouping.get_num_agents()))
-
-        while len(agent_pool) > 0:
-            aid = random.choice(list(agent_pool))
+        for group_agent_gt, group_params in zip(*self.agent_grouping.group_gt_params()):
             kwargs_copy = copy.copy(kwargs)
-            group_agent_indices = sorted(self.agent_grouping.get_group_agent_indices(aid, self.agent_num))
-            aid_tried = set()
-            while len(group_agent_indices) < self.agent_num:
-                logging.info('Cannot find enough agents to form a group, try incrementally')
-                group_candidate = list(agent_pool & set(group_agent_indices) - aid_tried)
-                if len(group_candidate) == 0:
-                    group_candidate = set(group_agent_indices) - aid_tried
-                if len(group_candidate) == 0:
-                    logging.error('seq: %s, aid: %d' % (self.seq_name, aid))
-                    logging.error('agent_pool: %s' % agent_pool)
-                    logging.error('formed group: %s' % group_agent_indices)
-                    raise ValueError('Cannot find enough agents to form a group')
-                aid = random.choice(list(group_candidate))
-                aid_tried.add(aid)
-                group_agent_indices_more = self.agent_grouping.get_group_agent_indices(aid, self.agent_num)
-                group_agent_indices_more = [i for i in group_agent_indices_more if i not in group_agent_indices]
-                group_agent_indices += group_agent_indices_more[:self.agent_num - len(group_agent_indices)]
-
-            agent_pool -= set(group_agent_indices)
-
-            group_params = np.concatenate(
-                (self.parm[:agent_params_begin], agent_params[group_agent_indices].flatten()))
-            group_agent_gt = self.gt[np.isin(self.gt[:, 1], group_agent_indices)]
-
             kwargs_copy['_fn_read_traj_binary'] = lambda *_: [group_agent_gt, group_params]
             group_dataset = SteersimSegmentedProcess(
                 *args,
@@ -80,7 +51,6 @@ class SteersimEvacProcess(steersimProcess):
             self.accu_sample_size.append(total_sample_size)
             self.sub_dataset.append(group_dataset)
             total_sample_size += group_dataset.get_total_available_sample_size()
-            logging.info(f"Group {aid} has {len(group_agent_indices)} agents, they are: \n{group_agent_indices}")
             #self.visulaize_group(aid, group_agent_indices)
 
         self.accu_sample_size.append(total_sample_size)
