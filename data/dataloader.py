@@ -1,4 +1,5 @@
 import copy
+import multiprocessing
 import random
 
 from utils.utils import print_log
@@ -76,16 +77,34 @@ class data_generator(object):
         self.num_total_samples = 0
         self.num_sample_list = []
         self.sequence = []
-        for seq_name in self.sequence_to_load:
-            print_log("loading sequence {} ...".format(seq_name), log=log, same_line=True, to_begin=True)
-            preprocessor = process_cls(data_root, seq_name, parser, log, self.split, self.phase)
-            if self.dataset.startswith("steersim"):
-                num_seq_samples = preprocessor.get_total_available_sample_size()
-            else:
-                num_seq_samples = preprocessor.num_fr - (parser.min_past_frames + parser.min_future_frames - 1) * self.frame_skip
-            self.num_total_samples += num_seq_samples
-            self.num_sample_list.append(num_seq_samples)
-            self.sequence.append(preprocessor)
+        if self.dataset == "steersim-evac":
+            with multiprocessing.Pool() as pool:
+                for seq_name in self.sequence_to_load:
+                    print_log("loading sequence {} in parallel...".format(seq_name),
+                              log=log, same_line=True, to_begin=True)
+                    preprocessor = process_cls(
+                        data_root, seq_name, parser, log, self.split, self.phase, eager_init=False)
+                    preprocessor.initialize_multi_thread(pool)
+                    self.sequence.append(preprocessor)
+
+                for preprocessor in self.sequence:
+                    print_log("finishing sequence {} in parallel...".format(preprocessor.seq_name),
+                              log=log, same_line=True, to_begin=True)
+                    preprocessor.wait_for_initialization()
+                    num_seq_samples = preprocessor.get_total_available_sample_size()
+                    self.num_total_samples += num_seq_samples
+                    self.num_sample_list.append(num_seq_samples)
+        else:
+            for seq_name in self.sequence_to_load:
+                print_log("loading sequence {} ...".format(seq_name), log=log, same_line=True, to_begin=True)
+                preprocessor = process_cls(data_root, seq_name, parser, log, self.split, self.phase)
+                if self.dataset.startswith("steersim"):
+                    num_seq_samples = preprocessor.get_total_available_sample_size()
+                else:
+                    num_seq_samples = preprocessor.num_fr - (parser.min_past_frames + parser.min_future_frames - 1) * self.frame_skip
+                self.num_total_samples += num_seq_samples
+                self.num_sample_list.append(num_seq_samples)
+                self.sequence.append(preprocessor)
 
         print_log(f'total num samples: {self.num_total_samples}', log)
         self.sample_list = list(range(self.num_total_samples))

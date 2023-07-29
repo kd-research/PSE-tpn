@@ -9,16 +9,18 @@ import subprocess
 
 from .steersim import steersimProcess
 from .steersim_segmented import SteersimSegmentedProcess
-from .agent_grouping import AgentGrouping
+from .agent_grouping import AgentGrouping, gt_to_group_gt_params
 
 logger = logging.Logger(__name__)
 
 
 class SteersimEvacProcess(steersimProcess):
     def __init__(self, *args, **kwargs):
+        eager_init = kwargs.pop("eager_init", True)
         # self.min_past_frames is meaningless in this context
         # self.min_future_frame is used to validate agents in each sample
         super().__init__(*args, **kwargs)
+        self._async_result = None
         if np.isnan(self.gt).any():
             raise ValueError('gt contains NaN')
 
@@ -34,24 +36,56 @@ class SteersimEvacProcess(steersimProcess):
         filtered = merged[merged.nframe > merged.nframe_clamp]
 
         self.gt = np.take(self.gt, filtered.origin_index, axis=0)
+        self.args = args
+        self.kwargs = kwargs
+        if eager_init:
+            self.initialize_single_thread()
 
-        self.agent_grouping = AgentGrouping(self.gt, seq_name=self.seq_name, param=self.parm, num_agent=self.agent_num)
+
+    def initialize_single_thread(self):
+        agent_grouping = AgentGrouping(self.gt, seq_name=self.seq_name, param=self.parm, num_agent=self.agent_num)
 
         self.accu_sample_size = []
         self.sub_dataset = []
         total_sample_size = 0
 
-        for group_agent_gt, group_params in zip(*self.agent_grouping.group_gt_params()):
-            kwargs_copy = copy.copy(kwargs)
+        for group_agent_gt, group_params in zip(*agent_grouping.group_gt_params()):
+            kwargs_copy = copy.copy(self.kwargs)
             kwargs_copy['_fn_read_traj_binary'] = lambda *_: [group_agent_gt, group_params]
             group_dataset = SteersimSegmentedProcess(
-                *args,
+                *self.args,
                 **kwargs_copy
             )
             self.accu_sample_size.append(total_sample_size)
             self.sub_dataset.append(group_dataset)
             total_sample_size += group_dataset.get_total_available_sample_size()
             #self.visulaize_group(aid, group_agent_indices)
+
+        self.accu_sample_size.append(total_sample_size)
+        self.parameter_size = self.sub_dataset[0].parameter_size
+
+    def initialize_multi_thread(self, pool_worker):
+        self._async_result = pool_worker.apply_async(gt_to_group_gt_params,
+                                                     (self.gt, self.seq_name, self.parm, self.agent_num))
+
+    def wait_for_initialization(self):
+        if self._async_result is None:
+            raise ValueError("promise is not initialized")
+        group_agent_gt, group_params = self._async_result.get()
+        total_sample_size = 0
+        self.accu_sample_size = []
+        self.sub_dataset = []
+
+        for group_agent_gt, group_params in zip(group_agent_gt, group_params):
+            kwargs_copy = copy.copy(self.kwargs)
+            kwargs_copy['_fn_read_traj_binary'] = lambda *_: [group_agent_gt, group_params]
+            group_dataset = SteersimSegmentedProcess(
+                *self.args,
+                **kwargs_copy
+            )
+            self.accu_sample_size.append(total_sample_size)
+            self.sub_dataset.append(group_dataset)
+            total_sample_size += group_dataset.get_total_available_sample_size()
 
         self.accu_sample_size.append(total_sample_size)
         self.parameter_size = self.sub_dataset[0].parameter_size

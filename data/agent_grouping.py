@@ -6,6 +6,12 @@ import random
 logger = logging.Logger(__name__)
 
 
+# wrap agent grouping into function so it can be used in parallel
+def gt_to_group_gt_params(gt, seq_name, param, num_agent):
+    agent_grouping_obj = AgentGrouping(gt, seq_name=seq_name, param=param, num_agent=num_agent)
+    return agent_grouping_obj.group_gt_params()
+
+
 class AgentGrouping:
     """
     Given a set of trajectory, find overall n-nearest agents for given agent
