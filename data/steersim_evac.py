@@ -44,25 +44,8 @@ class SteersimEvacProcess(steersimProcess):
 
     def initialize_single_thread(self):
         agent_grouping = AgentGrouping(self.gt, seq_name=self.seq_name, param=self.parm, num_agent=self.agent_num)
-
-        self.accu_sample_size = []
-        self.sub_dataset = []
-        total_sample_size = 0
-
-        for group_agent_gt, group_params in zip(*agent_grouping.group_gt_params()):
-            kwargs_copy = copy.copy(self.kwargs)
-            kwargs_copy['_fn_read_traj_binary'] = lambda *_: [group_agent_gt, group_params]
-            group_dataset = SteersimSegmentedProcess(
-                *self.args,
-                **kwargs_copy
-            )
-            self.accu_sample_size.append(total_sample_size)
-            self.sub_dataset.append(group_dataset)
-            total_sample_size += group_dataset.get_total_available_sample_size()
-            #self.visulaize_group(aid, group_agent_indices)
-
-        self.accu_sample_size.append(total_sample_size)
-        self.parameter_size = self.sub_dataset[0].parameter_size
+        group_gt, group_params, group_ids = agent_grouping.group_gt_params()
+        self.process_group_gt_params(group_gt, group_params, group_ids)
 
     def initialize_multi_thread(self, pool_worker):
         self._async_result = pool_worker.apply_async(gt_to_group_gt_params,
@@ -71,12 +54,16 @@ class SteersimEvacProcess(steersimProcess):
     def wait_for_initialization(self):
         if self._async_result is None:
             raise ValueError("promise is not initialized")
-        group_agent_gt, group_params = self._async_result.get()
+        group_agent_gt, group_params, group_ids = self._async_result.get()
+        self.process_group_gt_params(group_agent_gt, group_params, group_ids)
+
+    def process_group_gt_params(self, all_group_agent_gt, all_group_params, all_group_ids):
         total_sample_size = 0
         self.accu_sample_size = []
         self.sub_dataset = []
+        self.group_aids = all_group_ids
 
-        for group_agent_gt, group_params in zip(group_agent_gt, group_params):
+        for group_agent_gt, group_params in zip(all_group_agent_gt, all_group_params):
             kwargs_copy = copy.copy(self.kwargs)
             kwargs_copy['_fn_read_traj_binary'] = lambda *_: [group_agent_gt, group_params]
             group_dataset = SteersimSegmentedProcess(
@@ -128,5 +115,7 @@ class SteersimEvacProcess(steersimProcess):
 
         data = self.sub_dataset[sub_data_index](sub_sample_index, *args, **kwargs)
         data['seq'] = f"{self.seq_name}_{sub_data_index}"
+        data['group_ids'] = self.group_aids[sub_data_index]
+
 
         return data

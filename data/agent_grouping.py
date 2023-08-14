@@ -26,6 +26,9 @@ class AgentGrouping:
         self.param = param
         self.seq_name = seq_name
         self._prepare(gt)
+        self.env_parameter_size = 1
+        self.agent_parameter_size = (len(param) - self.env_parameter_size) // self.get_num_agents()
+        assert self.agent_parameter_size * self.get_num_agents() + self.env_parameter_size == len(param)
 
     @staticmethod
     def _compute_ADE(d, a1, a2):
@@ -68,12 +71,13 @@ class AgentGrouping:
         return candidate_index[~is_inf_ade[candidate_index]]
 
     def group_gt_params(self):
-        agent_params_begin = 1
-        agent_params = numpy.array(self.param[agent_params_begin:]).reshape(-1, 5)
+        agent_params_begin = self.env_parameter_size
+        agent_params = numpy.array(self.param[agent_params_begin:]).reshape(-1, self.agent_parameter_size)
         agent_pool = set(range(self.get_num_agents()))
 
         all_group_gt = []
         all_group_params = []
+        all_group_indices = []
 
         while len(agent_pool) > 0:
             aid = random.choice(list(agent_pool))
@@ -103,8 +107,9 @@ class AgentGrouping:
 
             all_group_gt.append(group_agent_gt)
             all_group_params.append(group_params)
+            all_group_indices.append(group_agent_indices)
 
-        return all_group_gt, all_group_params
+        return all_group_gt, all_group_params, all_group_indices
 
     def get_num_agents(self):
         return self.d.aid.max() + 1

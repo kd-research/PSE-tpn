@@ -6,6 +6,7 @@ import multiprocessing
 import sys
 import numpy as np
 import multiprocessing
+import json
 
 sys.path.append(os.getcwd())
 from data.dataloader import data_generator
@@ -14,6 +15,32 @@ from utils.config import Config
 from model.model_lib import model_dict
 from utils.utils import prepare_seed, print_log, mkdir_if_missing
 
+
+class NumpyEncoder(json.JSONEncoder):
+    """ Custom encoder for numpy data types """
+    def default(self, obj):
+        if isinstance(obj, (np.int_, np.intc, np.intp, np.int8,
+                            np.int16, np.int32, np.int64, np.uint8,
+                            np.uint16, np.uint32, np.uint64)):
+
+            return int(obj)
+
+        elif isinstance(obj, (np.float_, np.float16, np.float32, np.float64)):
+            return float(obj)
+
+        elif isinstance(obj, (np.complex_, np.complex64, np.complex128)):
+            return {'real': obj.real, 'imag': obj.imag}
+
+        elif isinstance(obj, (np.ndarray,)):
+            return obj.tolist()
+
+        elif isinstance(obj, (np.bool_)):
+            return bool(obj)
+
+        elif isinstance(obj, (np.void)):
+            return None
+
+        return json.JSONEncoder.default(self, obj)
 
 def get_model_prediction(data, sample_k, random_latent):
     model.set_data(data)
@@ -29,13 +56,15 @@ def test_model(generator, save_dir, cfg, random_latent):
     def test_once(data):
         seq_name, frame = data['seq'], data['frame']
         frame = int(frame)
-        print('testing seq: %s, frame: %06d                \r' % (seq_name, frame), end="", flush=True)
+        if sys.stdout.isatty():
+            print('testing seq: %s, frame: %06d                \r' % (seq_name, frame), end="", flush=True)
 
         with torch.no_grad():
             get_model_prediction(data, cfg.sample_k, random_latent)
 
         seq_name = data['seq']
         context_v = model.data['context_enc'].detach().cpu().numpy()
+        group_ids = data['group_ids']
         z = model.data['q_z_dist'].mode().detach().cpu().numpy()
 
         assert (isinstance(seq_name, str))
@@ -54,6 +83,7 @@ def test_model(generator, save_dir, cfg, random_latent):
             "env_param": env_param.tolist(),
             "context_v": context_v.tolist(),
             "z": z.tolist(),
+            "group_ids": group_ids,
             "frame": frame,
         })
 
@@ -69,7 +99,8 @@ def test_model(generator, save_dir, cfg, random_latent):
     with open(f"{cfg.latent_dir}/{args.data_eval}.json", "w") as f:
         print(f"Serialized {len(pickle_obj)} data")
         for d in pickle_obj:
-            f.write(json.dumps(d))
+            print({k: type(v) for k, v in d.items()})
+            f.write(json.dumps(d, cls=NumpyEncoder))
             f.write("\n")
 
     import yaml
