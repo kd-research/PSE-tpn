@@ -99,7 +99,6 @@ def test_model(generator, save_dir, cfg, random_latent):
     with open(f"{cfg.latent_dir}/{args.data_eval}.json", "w") as f:
         print(f"Serialized {len(pickle_obj)} data")
         for d in pickle_obj:
-            print({k: type(v) for k, v in d.items()})
             f.write(json.dumps(d, cls=NumpyEncoder))
             f.write("\n")
 
