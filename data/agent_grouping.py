@@ -7,8 +7,8 @@ logger = logging.Logger(__name__)
 
 
 # wrap agent grouping into function so it can be used in parallel
-def gt_to_group_gt_params(gt, seq_name, param, num_agent):
-    agent_grouping_obj = AgentGrouping(gt, seq_name=seq_name, param=param, num_agent=num_agent)
+def gt_to_group_gt_params(gt, seq_name, param, num_agent, psizes):
+    agent_grouping_obj = AgentGrouping(gt, seq_name=seq_name, param=param, num_agent=num_agent, psizes=psizes)
     return agent_grouping_obj.group_gt_params()
 
 
@@ -20,14 +20,14 @@ class AgentGrouping:
       AgentGrouping(data.gt).get_group_agent_indices(51, 6)
     """
 
-    def __init__(self, gt, seq_name=None, param=None, num_agent=6):
+    def __init__(self, gt, seq_name=None, param=None, num_agent=6, psizes=[1, 1]):
         self.gt = gt
         self.agent_num = num_agent
         self.param = param
         self.seq_name = seq_name
         self._prepare(gt)
-        self.env_parameter_size = 1
-        self.agent_parameter_size = (len(param) - self.env_parameter_size) // self.get_num_agents()
+        self.env_parameter_size = psizes[0]
+        self.agent_parameter_size = psizes[1]
         assert self.agent_parameter_size * self.get_num_agents() + self.env_parameter_size == len(param)
 
     @staticmethod
@@ -71,8 +71,11 @@ class AgentGrouping:
         return candidate_index[~is_inf_ade[candidate_index]]
 
     def group_gt_params(self):
-        agent_params_begin = self.env_parameter_size
-        agent_params = numpy.array(self.param[agent_params_begin:]).reshape(-1, self.agent_parameter_size)
+        agent_params = None
+        if self.agent_parameter_size != 0:
+            agent_params_begin = self.env_parameter_size
+            agent_params = numpy.array(self.param[agent_params_begin:]).reshape(-1, self.agent_parameter_size)
+
         agent_pool = set(range(self.get_num_agents()))
 
         all_group_gt = []
@@ -101,8 +104,11 @@ class AgentGrouping:
 
             agent_pool -= set(group_agent_indices)
 
-            group_params = numpy.concatenate(
-                (self.param[:agent_params_begin], agent_params[group_agent_indices].flatten()))
+            if self.agent_parameter_size == 0:
+                group_params = self.param
+            else:
+                group_params = numpy.concatenate(
+                    (self.param[:agent_params_begin], agent_params[group_agent_indices].flatten()))
             group_agent_gt = self.gt[numpy.isin(self.gt[:, 1], group_agent_indices)]
 
             all_group_gt.append(group_agent_gt)

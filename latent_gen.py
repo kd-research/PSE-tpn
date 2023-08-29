@@ -64,7 +64,7 @@ def test_model(generator, save_dir, cfg, random_latent):
 
         seq_name = data['seq']
         context_v = model.data['context_enc'].detach().cpu().numpy()
-        group_ids = data['group_ids']
+        group_ids = data.get('group_ids', None)
         z = model.data['q_z_dist'].mode().detach().cpu().numpy()
 
         assert (isinstance(seq_name, str))

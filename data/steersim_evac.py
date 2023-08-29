@@ -38,18 +38,23 @@ class SteersimEvacProcess(steersimProcess):
         self.gt = np.take(self.gt, filtered.origin_index, axis=0)
         self.args = args
         self.kwargs = kwargs
+        self.env_parameter_size = self.parser.env_parameter_size
+        self.agent_parameter_size = self.parser.agent_parameter_size
+
         if eager_init:
             self.initialize_single_thread()
 
 
     def initialize_single_thread(self):
-        agent_grouping = AgentGrouping(self.gt, seq_name=self.seq_name, param=self.parm, num_agent=self.agent_num)
+        agent_grouping = AgentGrouping(self.gt, seq_name=self.seq_name, param=self.parm, num_agent=self.agent_num,
+                                       psizes=[self.env_parameter_size, self.agent_parameter_size])
         group_gt, group_params, group_ids = agent_grouping.group_gt_params()
         self.process_group_gt_params(group_gt, group_params, group_ids)
 
     def initialize_multi_thread(self, pool_worker):
         self._async_result = pool_worker.apply_async(gt_to_group_gt_params,
-                                                     (self.gt, self.seq_name, self.parm, self.agent_num))
+                                                     (self.gt, self.seq_name, self.parm, self.agent_num,
+                                                      [self.env_parameter_size, self.agent_parameter_size]))
 
     def wait_for_initialization(self):
         if self._async_result is None:
