@@ -16,7 +16,8 @@ def load_data(file_path):
 
     clamp_max = d[d.z < 1].groupby('aid').nframe.max()
     merged = pandas.merge(d, clamp_max, on="aid", suffixes=("", "_clamp"))
-    filtered = merged[merged.nframe > merged.nframe_clamp]
+    filtered = merged[merged.nframe > merged.nframe_clamp].copy()
+    filtered['nframe'] = filtered.nframe - filtered.nframe_clamp
     return filtered.drop('nframe_clamp', axis=1)
 
 
