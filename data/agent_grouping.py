@@ -31,7 +31,7 @@ class AgentGrouping:
         assert self.agent_parameter_size * self.get_num_agents() + self.env_parameter_size == len(param)
 
     @staticmethod
-    def _compute_ADE(d, a1, a2):
+    def compute_MAE(d, a1, a2):
         d1 = d[d.aid == a1]
         d2 = d[d.aid == a2]
         # get frames for both agents appears, align trajectory
@@ -59,15 +59,15 @@ class AgentGrouping:
 
         # cache ADE matrix so it can be reused
         nagents = self.d.aid.max() + 1
-        self.ADEm = ADEm = numpy.zeros([nagents, nagents])
+        self.MAEmtx = MAEmtx = numpy.zeros([nagents, nagents])
         # ADE matrix should be semmetric and main diagnonal should be 0s
-        meshX, meshY = numpy.tril_indices_from(ADEm, k=-1)
+        meshX, meshY = numpy.tril_indices_from(MAEmtx, k=-1)
         for x, y in zip(meshX, meshY):
-            ADEm[y, x] = ADEm[x, y] = self._compute_ADE(self.d, x, y)
+            MAEmtx[y, x] = MAEmtx[x, y] = self.compute_MAE(self.d, x, y)
 
     def get_group_agent_indices(self, target_idx, num_agent):
-        is_inf_ade = numpy.isinf(self.ADEm[target_idx])
-        candidate_index = numpy.argsort(self.ADEm[target_idx])[:num_agent]
+        is_inf_ade = numpy.isinf(self.MAEmtx[target_idx])
+        candidate_index = numpy.argsort(self.MAEmtx[target_idx])[:num_agent]
         return candidate_index[~is_inf_ade[candidate_index]]
 
     def group_gt_params(self):
