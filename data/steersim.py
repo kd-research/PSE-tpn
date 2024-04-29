@@ -91,6 +91,10 @@ class steersimProcess(preprocess):
         elif parser.dataset.startswith('steersim'):
             # Priority 1: find binary from config
             label_path = get_full_path(seq_name)
+            if STEERSIM_BINARIES and label_path is None:
+                raise FileNotFoundError(f"Can not find binary for {seq_name} in {STEERSIM_BINARIES.keys()}")
+            elif not os.path.exists(label_path):
+                raise FileNotFoundError(f"Can not find binary for {seq_name} in {label_path}")
 
             # Priority 2: find binary in all possible directory
             if (label_path is None) or (not os.path.exists(label_path)):
